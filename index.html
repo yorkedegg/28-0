@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>28–0</title>
+<meta name="description" content="Draft a lineup from Overwatch League and OWCS history, one team and era at a time, and try to go 28–0. A fan-made game.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Saira+Condensed:wght@700;800;900&display=swap">
+<style>
+/* Hero-select desk: a bright sky backdrop with angled light streaks, navy glass panels on top.
+   Skewed parallelogram controls, oblique condensed uppercase headings, one orange action colour,
+   blue for your side and red for losses. Team bar across the top, draft stage below. */
+:root{
+  --sky-1:#3f97f2; --sky-2:#8fcaff; --sky-3:#e6f3ff; --streak:rgba(255,255,255,.22);
+  --on-sky:#0b1a33; --on-sky-2:#23436e;
+  --glass:rgba(13,21,40,.88); --glass-2:rgba(27,39,66,.92); --glass-3:rgba(255,255,255,.06);
+  --edge:rgba(255,255,255,.16); --edge-2:rgba(255,255,255,.34);
+  --ink:#ffffff; --ink-2:#bcc7dc; --ink-3:#8593ad;
+  --orange:#f99e1a; --orange-hi:#ffb547; --orange-ink:#241300;
+  --blue:#46c2ff; --red:#ff5160; --gold:#ffcf5c;
+  --tank:#6db8ff; --dps:#ff8a73; --sup:#72e5ab;
+  --f-head:"Saira Condensed","Arial Narrow","Helvetica Neue",sans-serif;
+  --f-body:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+  --skew:-12deg;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --sky-1:#071430; --sky-2:#0f2a55; --sky-3:#1b4579; --streak:rgba(255,255,255,.05);
+  --on-sky:#eef4ff; --on-sky-2:#a9c0e4; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --sky-1:#071430; --sky-2:#0f2a55; --sky-3:#1b4579; --streak:rgba(255,255,255,.05);
+  --on-sky:#eef4ff; --on-sky-2:#a9c0e4; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--sky-1)}
+body{margin:0;min-height:100%;color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  background:
+    repeating-linear-gradient(112deg,transparent 0 150px,var(--streak) 150px 153px,transparent 153px 310px),
+    linear-gradient(180deg,var(--sky-1) 0%,var(--sky-2) 42%,var(--sky-3) 100%);
+  background-attachment:fixed}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--orange);outline-offset:3px}
+.wrap{max-width:1180px;margin:0 auto;padding-block:26px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:grid;gap:18px}
+.r-T{color:var(--tank)} .r-D{color:var(--dps)} .r-S{color:var(--sup)}
+svg{display:block}
+
+/* ---------- skew primitive: the shape lives on ::before, content stays upright ---------- */
+.sk{position:relative;isolation:isolate}
+.sk::before{content:"";position:absolute;inset:0;z-index:-1;transform:skewX(var(--skew));
+  background:var(--glass);border:1px solid var(--edge);transition:background .12s,border-color .12s,box-shadow .12s}
+
+/* ---------- top bar ---------- */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 28px}
+.brand{min-width:0}
+.mark{margin:0;font:italic 900 clamp(64px,10vw,116px)/.82 var(--f-head);letter-spacing:-.01em;color:var(--on-sky);
+  text-shadow:0 2px 0 rgba(255,255,255,.25)}
+.mark span{color:var(--orange);margin:0 .03em}
+.tag{margin:10px 0 0;max-width:56ch;color:var(--on-sky-2);font-size:15px;text-wrap:pretty}
+.tag b{color:var(--on-sky);font-weight:600}
+.controls{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding-left:8px}
+.tabs{display:flex;gap:6px}
+.tab{border:0;background:transparent;cursor:pointer;padding:9px 18px;
+  font:italic 800 17px/1 var(--f-head);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2)}
+.tab:hover::before{border-color:var(--edge-2)}
+.tab[aria-pressed="true"]{color:var(--orange-ink)}
+.tab[aria-pressed="true"]::before{background:var(--orange);border-color:var(--orange-hi)}
+.chk{display:inline-flex;align-items:center;gap:9px;cursor:pointer;user-select:none;padding:9px 16px;
+  font:italic 800 16px/1 var(--f-head);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2)}
+.chk input{appearance:none;width:15px;height:15px;margin:0;border:2px solid var(--ink-2);transform:skewX(var(--skew));cursor:pointer}
+.chk input:checked{background:var(--orange);border-color:var(--orange)}
+.chk:has(input:checked){color:var(--ink)}
+
+/* ---------- team bar (lineup) ---------- */
+.teambar{background:var(--glass);border:1px solid var(--edge);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  padding:14px 18px 12px;display:grid;gap:12px}
+.bar-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+.bar-title{margin:0;font:italic 900 28px/1 var(--f-head);text-transform:uppercase;letter-spacing:.02em}
+.bar-meta{font:italic 700 15px/1 var(--f-head);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.bar-rating{margin-left:auto;display:flex;align-items:baseline;gap:8px;font:italic 700 15px/1 var(--f-head);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.bar-rating b{font:italic 900 34px/1 var(--f-head);color:var(--ink);letter-spacing:0;font-variant-numeric:tabular-nums}
+.bar-rating small{font:500 12.5px/1 var(--f-body);letter-spacing:0;text-transform:none;color:var(--blue)}
+.plates{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:10px;padding:0 6px}
+@media (max-width:900px){.plates{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.plate{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"badge slot ovr" "badge name ovr" "badge from ovr";
+  column-gap:10px;align-items:center;padding:9px 16px 9px 14px;min-height:72px}
+.plate::before{background:var(--glass-2)}
+.plate.empty::before{background:transparent;border-style:dashed;border-color:var(--edge-2)}
+.plate.filled::before{border-color:var(--edge-2)}
+.plate.mvp::before{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold),0 0 18px rgba(255,207,92,.25)}
+.badge{grid-area:badge;width:36px;height:36px;display:grid;place-items:center;background:rgba(255,255,255,.07);
+  transform:rotate(45deg);border:1px solid var(--edge)}
+.badge svg{width:17px;height:17px;transform:rotate(-45deg)}
+.pl-slot{grid-area:slot;font:italic 700 12.5px/1.1 var(--f-head);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.pl-slot em{font-style:inherit;color:var(--gold)}
+.pl-name{grid-area:name;font:italic 800 22px/1.05 var(--f-head);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plate.empty .pl-name{color:var(--ink-3);font-weight:700}
+.pl-from{grid-area:from;font-size:12.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-ovr{grid-area:ovr;font:italic 900 30px/1 var(--f-head);font-variant-numeric:tabular-nums}
+.pl-ovr.hid{color:var(--ink-3);font-size:22px}
+.hint{margin:0;font-size:12.5px;color:var(--ink-3)}
+@media (max-width:560px){
+  .plates{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 4px}
+  .plates[style*="--n:5"] .plate:first-child{grid-column:1/-1}
+  .plate{min-height:58px;padding:7px 14px 7px 14px;column-gap:6px;grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"slot ovr" "name name" "from from"}
+  .badge{display:none}
+  .pl-slot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pl-name{font-size:19px}.pl-ovr{font-size:20px;align-self:start}.pl-ovr.hid{font-size:16px}.pl-from{font-size:11.5px}
+}
+
+/* ---------- stage ---------- */
+.stage{background:var(--glass);border:1px solid var(--edge);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  padding:20px 22px 22px;display:grid;gap:18px;min-height:420px;align-content:start}
+.tagchip{display:inline-block;padding:5px 13px;font:italic 800 13.5px/1 var(--f-head);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.tagchip::before{background:var(--glass-3)}
+.tagchip.gold{color:#2b1d00}.tagchip.gold::before{background:var(--gold);border-color:var(--gold)}
+.progress{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.step{font:italic 700 15px/1 var(--f-head);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.step b{font-size:22px;color:var(--ink)}
+.pips{display:flex;gap:5px;padding-right:4px}
+.pip{width:30px;height:8px;transform:skewX(var(--skew));background:rgba(255,255,255,.14)}
+.pip.on{background:var(--orange)}
+
+/* intro */
+.intro{display:grid;gap:16px;justify-items:start}
+.intro-title{margin:0;font:italic 900 clamp(38px,5.6vw,64px)/.92 var(--f-head);text-transform:uppercase;letter-spacing:.005em;text-wrap:balance;max-width:16ch}
+.intro-title em{font-style:inherit;color:var(--orange)}
+.rules{list-style:none;margin:0;padding:0;display:grid;gap:12px;max-width:66ch}
+.rules li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:start;color:var(--ink-2)}
+.rules b{color:var(--ink);font-weight:600}
+.rules .n{display:grid;place-items:center;height:28px;font:italic 900 18px/1 var(--f-head);color:var(--orange-ink)}
+.rules .n::before{background:var(--orange);border-color:var(--orange-hi)}
+
+/* team banner: team colour with an angled split, like a map-load card */
+.banner{position:relative;overflow:hidden;color:var(--team-ink);padding:16px 22px 14px;
+  background:linear-gradient(104deg,var(--team) 0 64%,color-mix(in srgb,var(--team) 62%,#000) 64% 100%)}
+.banner::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(104deg,transparent 0 22px,rgba(255,255,255,.07) 22px 24px);mix-blend-mode:soft-light}
+.banner-top{display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:1}
+.banner .tagchip{color:var(--team-ink)}
+.banner .tagchip::before{background:rgba(0,0,0,.18);border-color:rgba(255,255,255,.28)}
+.banner .tagchip.gold{color:#2b1d00}.banner .tagchip.gold::before{background:var(--gold);border-color:var(--gold)}
+.banner-title{position:relative;z-index:1;margin:10px 0 10px;font:italic 900 clamp(34px,5.4vw,60px)/.9 var(--f-head);text-transform:uppercase;letter-spacing:.005em;text-wrap:balance}
+.banner-title .yr{display:block;font-size:.5em;letter-spacing:.06em;opacity:.85;margin-bottom:4px}
+.banner.rolling .banner-title{opacity:.75}
+.eras{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:6px;min-height:26px;padding-left:4px}
+.era{padding:5px 12px;font:italic 800 14px/1 var(--f-head);letter-spacing:.08em;text-transform:uppercase;color:var(--team-ink);opacity:.75}
+.era::before{background:rgba(0,0,0,.2);border-color:rgba(255,255,255,.3)}
+.era.on{opacity:1;color:#0b1424}.era.on::before{background:#fff;border-color:#fff}
+.era.used{opacity:.4;text-decoration:line-through}
+.facts{display:grid;gap:6px}
+.srecs{display:flex;flex-wrap:wrap;gap:4px 18px;font:italic 700 15px/1.3 var(--f-head);letter-spacing:.06em;color:var(--ink-3)}
+.srecs b{color:var(--ink);font-weight:800}
+.srecs .champ{color:var(--gold)}
+.notes{list-style:none;margin:0;padding:0;display:grid;gap:2px;color:var(--ink-2);font-size:13.5px}
+.notes b{color:var(--ink);font-weight:600;margin-right:6px}
+
+/* roster: hero-select tiles grouped by role */
+.roster{display:grid;gap:14px}
+.rhead{margin:0 0 8px;display:flex;align-items:center;gap:8px;font:italic 800 16px/1 var(--f-head);letter-spacing:.14em;text-transform:uppercase}
+.rhead svg{width:16px;height:16px}
+.rhead span{color:var(--ink-2)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:8px 12px;padding:0 8px}
+.tile{border:0;background:transparent;cursor:pointer;text-align:left;display:grid;grid-template-columns:minmax(0,1fr) auto;
+  grid-template-areas:"name ovr" "sub ovr";column-gap:8px;padding:10px 16px 10px 18px;color:var(--ink);transition:transform .12s}
+.tile::before{background:var(--glass-2)}
+.tile:hover:not(:disabled){transform:translateY(-2px)}
+.tile:hover:not(:disabled)::before{border-color:var(--orange);box-shadow:inset 0 0 0 1px var(--orange),0 6px 18px rgba(249,158,26,.18)}
+.tile:disabled{cursor:not-allowed;opacity:.38}
+.t-name{grid-area:name;font:italic 800 20px/1.05 var(--f-head);text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-sub{grid-area:sub;font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-ovr{grid-area:ovr;align-self:center;font:italic 900 26px/1 var(--f-head);font-variant-numeric:tabular-nums}
+
+/* actions */
+.actions{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;padding-left:6px}
+.btn{border:0;background:transparent;cursor:pointer;padding:13px 28px;font:italic 900 19px/1 var(--f-head);letter-spacing:.08em;text-transform:uppercase;color:var(--ink)}
+.btn::before{background:var(--glass-2);border-color:var(--edge-2)}
+.btn:hover:not(:disabled)::before{border-color:var(--ink)}
+.btn.primary{color:var(--orange-ink)}
+.btn.primary::before{background:var(--orange);border-color:var(--orange-hi);box-shadow:0 6px 20px rgba(249,158,26,.3)}
+.btn.primary:hover::before{background:var(--orange-hi)}
+.btn:disabled{opacity:.38;cursor:not-allowed}
+.note-sm{font-size:13px;color:var(--ink-3)}
+.copied{font:italic 800 15px/1 var(--f-head);letter-spacing:.1em;text-transform:uppercase;color:var(--blue)}
+.share-fallback{width:100%;min-height:120px;background:var(--glass-2);color:var(--ink);border:1px solid var(--edge);font:13px/1.4 ui-monospace,Menlo,monospace;padding:10px}
+
+/* results: post-match */
+.post{position:relative;overflow:hidden;padding:18px 22px 20px;display:grid;gap:6px;
+  background:linear-gradient(104deg,var(--res) 0 58%,color-mix(in srgb,var(--res) 55%,#000) 58% 100%);color:#0b1424}
+.post.blue{--res:var(--blue)} .post.gold{--res:var(--gold)} .post.red{--res:var(--red);color:#fff}
+.post .tagchip{color:inherit}.post .tagchip::before{background:rgba(0,0,0,.14);border-color:rgba(0,0,0,.18)}
+.post-verdict{font:italic 900 clamp(46px,8vw,96px)/.85 var(--f-head);text-transform:uppercase;letter-spacing:.005em;text-wrap:balance}
+.post-rec{font:italic 900 clamp(40px,6vw,64px)/1 var(--f-head);font-variant-numeric:tabular-nums;display:flex;gap:.15em}
+.post-rec .d{opacity:.55}
+.post-sub{margin:0;font-size:14px;max-width:70ch;opacity:.85}
+.strip{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:5px;padding:0 6px}
+@media (max-width:560px){.strip{grid-template-columns:repeat(7,minmax(0,1fr))}}
+.g{height:20px;transform:skewX(var(--skew));background:var(--blue)}
+.g.L{background:var(--red)}
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:700px){.cols{grid-template-columns:minmax(0,1fr)}}
+.box{background:var(--glass-2);border:1px solid var(--edge);padding:14px 16px;min-width:0}
+.box.wide{grid-column:1/-1}
+.box h4{margin:0 0 10px;font:italic 800 16px/1 var(--f-head);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.rows{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.rows li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:baseline;font-size:14px}
+.rows .k{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rows .k small{color:var(--ink-3)}
+.rows .v{font:italic 800 17px/1 var(--f-head);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.won{color:var(--blue)} .lost{color:var(--red)} .gold-t{color:var(--gold)}
+
+.foot{margin:4px 0 0;color:var(--on-sky-2);font-size:12.5px}
+.foot .credits{font-size:11.5px;opacity:.8}
+.top{align-items:center}
+.top .mark{font-size:clamp(54px,8vw,92px)}
+/* main menu: big stacked selections */
+.menu{display:grid;gap:16px;justify-items:start;padding:8px 8px 6px}
+.play{border:0;background:transparent;cursor:pointer;display:grid;gap:6px;justify-items:start;text-align:left;padding:18px 54px 16px 38px;color:var(--orange-ink);margin-bottom:6px}
+.play::before{background:var(--orange);border-color:var(--orange-hi);box-shadow:0 10px 30px rgba(249,158,26,.35)}
+.play:hover::before{background:var(--orange-hi)}
+.play span{font:italic 900 clamp(52px,8vw,84px)/.85 var(--f-head);text-transform:uppercase;letter-spacing:.01em}
+.play small{font:italic 800 16px/1 var(--f-head);letter-spacing:.12em;text-transform:uppercase;opacity:.75}
+.mrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px}
+.mlabel{width:118px;font:italic 800 17px/1 var(--f-head);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.mopt{border:0;background:transparent;cursor:pointer;min-width:180px;padding:17px 28px;font:italic 900 28px/1 var(--f-head);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2)}
+.mopt::before{background:var(--glass-2);border-color:var(--edge)}
+.mopt:hover::before{border-color:var(--edge-2)}
+.mopt.on{color:var(--orange-ink)}.mopt.on::before{background:var(--orange);border-color:var(--orange-hi)}
+@media (max-width:560px){.mlabel{width:100%}.mopt{min-width:0;flex:1;font-size:22px;padding:15px 14px}.play{padding:16px 40px 14px 28px}}
+/* logos */
+.banner{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:20px;align-items:center}
+.banner>*:not(.banner-logo){grid-column:2}
+.banner-logo{grid-column:1;grid-row:1/4;width:clamp(72px,11vw,116px);aspect-ratio:1;max-width:100%;display:grid;place-items:center;padding:10px;position:relative;z-index:1}
+.banner-logo::before{background:rgba(6,12,26,.55);border-color:rgba(255,255,255,.25)}
+.banner-logo img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+.banner-logo:empty{display:none}
+.mini{width:17px;height:17px;object-fit:contain;vertical-align:-3px;margin-right:6px}
+.cols{align-items:start}
+@media (max-width:560px){.banner{column-gap:12px}}
+@keyframes pop{from{transform:translateY(8px);opacity:.2}to{transform:none;opacity:1}}
+.pop{animation:pop .26s cubic-bezier(.2,.8,.2,1)}
+@media (prefers-reduced-motion:reduce){*,*::before{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 class="mark">28<span>–</span>0</h1>
+    <button class="tab sk" id="menu-btn" type="button" hidden>Menu</button>
+  </header>
+
+  <section class="teambar" id="lineup" aria-label="Your lineup" hidden></section>
+  <main class="stage" id="stage" aria-live="polite"></main>
+
+  <p class="foot">Not affiliated with Blizzard Entertainment.<br><span class="credits">Rosters and team logos via Liquipedia · stats from the OWL Stats Lab, OWTV and owtics · logos belong to their teams.</span></p>
+</div>
+
+<script>
+/* ================= DATA =================
+   [league, year, abbr, team, record, note, champion?, [[handle, role, rating, sub-role], ...]]
+   Roles: T tank, D damage, S support. Ratings are per-season (60–99).
+   Rosters: Liquipedia team cards. OWL 2018–2022 ratings: Stats Lab per-10 stats by role,
+   team record, share of minutes played and awards. 2023: neighbouring seasons + results. OWCS 2025: OWTV per-map stats (Stage 3 + World Finals).
+   OWCS 2024–25: owtics Player-of-the-Match awards and stage placements.
+   2023–2025 are then calibrated so each year's starters average the same as OWL 2018–22
+   (shift applies fully at 84 and below, fading to zero at 90+, so stars are unchanged).
+   Playoff runs: champions' 7 highest-rated players +3, Grand Finals runners-up +1.5.   */
+const RAW = [["OWL",2018,"BOS","Boston Uprising","26–14","Went 10–0 in Stage 3",0,[["NotE","T",85,"O"],["Gamsu","T",83,"M"],["Kalios","T",79,"O"],["Striker","D",87,"F"],["DreamKazper","D",84,"HF"],["Mistakes","D",77,"HF"],["Kellex","S",82,"M"],["Neko","S",78,"F"],["AimGod","S",76,"F"],["Snow","S",73,"MF"],["Avast","S",68,"M"]]],
+["OWL",2018,"FLA","Florida Mayhem","7–33","",0,[["Manneten","T",75,"O"],["CWoosH","T",72,"M"],["aWesomeGuy","T",65,"M"],["zappis","T",63,"O"],["Logix","D",75,"HF"],["Sayaplayer","D",74,"H"],["TviQ","D",73,"F"],["Zebbosai","S",74,"M"],["Zuppeh","S",74,"F"]]],
+["OWL",2018,"HOU","Houston Outlaws","22–18","",0,[["Muma","T",83,"M"],["coolmatt","T",81,"O"],["SPREE","T",78,"O"],["FCTFCTN","T",70,"M"],["JAKE","D",82,"F"],["LiNkzr","D",82,"H"],["ArHaN","D",72,"F"],["Clockwork","D",70,"F"],["Mendokusaii","D",67,"F"],["Bani","S",81,"M"],["Rawkus","S",80,"F"],["Boink","S",75,"M"]]],
+["OWL",2018,"LDN","London Spitfire","24–16","Season 1 Grand Finals champion",1,[["Fury","T",91,"O"],["Gesture","T",90,"M"],["WooHyaL","T",86,"O"],["Fissure","T",75,"M"],["TiZi","T",68,"M"],["Profit","D",92,"F"],["birdring","D",86,"H"],["Hooreg","D",75,"H"],["Rascal","D",71,"F"],["NUS","S",88,"M"],["Bdosin","S",87,"F"],["Closer","S",83,"M"],["HaGoPeun","S",73,"F"]]],
+["OWL",2018,"NYXL","New York Excelsior","34–6","Best regular season; JJoNak named MVP",0,[["MekO","T",89,"O"],["Mano","T",85,"M"],["Janus","T",79,"M"],["Saebyeolbe","D",88,"F"],["Libero","D",85,"F"],["Pine","D",82,"H"],["JJoNak","S",91,"F"],["ArK","S",90,"M"],["Anamo","S",89,"M"]]],
+["OWL",2018,"PHI","Philadelphia Fusion","24–16","Grand Finals runner-up",0,[["Poko","T",88,"O"],["SADO","T",82,"M"],["HOTBA","T",79,"O"],["Fragi","T",74,"M"],["Carpe","D",88,"HF"],["Eqo","D",86,"F"],["snillo","D",84,"F"],["ShaDowBurn","D",80,"F"],["neptuNo","S",86,"M"],["Boombox","S",86,"F"],["Dayfly","S",69,"F"],["Joemeister","S",68,"M"]]],
+["OWL",2018,"DAL","Dallas Fuel","12–28","",0,[["Mickie","T",75,"O"],["cocco","T",75,"M"],["OGE","T",75,"M"],["xQc","T",70,"M"],["EFFECT","D",81,"F"],["Seagull","D",77,"F"],["Taimou","D",72,"H"],["aKm","D",69,"H"],["Rascal","D",69,"F"],["HarryHook","S",77,"M"],["Custa","S",75,"M"],["chipshajen","S",73,"MF"],["uNKOE","S",72,"F"]]],
+["OWL",2018,"LAG","Los Angeles Gladiators","25–15","Fissure was MVP runner-up",0,[["Fissure","T",85,"M"],["Bischu","T",82,"O"],["iRemiix","T",78,"M"],["Void","T",76,"O"],["Surefour","D",82,"H"],["Hydration","D",79,"F"],["Asher","D",78,"F"],["silkthread","D",74,"F"],["Shaz","S",84,"F"],["BigGoose","S",73,"M"]]],
+["OWL",2018,"LAV","Los Angeles Valiant","27–13","Pacific Division top seed",0,[["Fate","T",86,"M"],["envy","T",82,"O"],["SPACE","T",82,"O"],["numlocked","T",71,"M"],["Finnsi","T",68,"O"],["Agilities","D",83,"F"],["SoOn","D",83,"HF"],["Bunny","D",82,"F"],["Silkthread","D",75,"F"],["KSF","D",72,"HF"],["GrimReality","D",68,"H"],["KariV","S",81,"F"],["Custa","S",80,"M"],["uNKOE","S",78,"F"],["Verbo","S",76,"M"],["Izayaki","S",68,"F"]]],
+["OWL",2018,"SFS","San Francisco Shock","17–23","",0,[["Nevix","T",78,"O"],["super","T",78,"M"],["ChoiHyoBin","T",75,"O"],["nomy","T",74,"M"],["babybay","D",81,"H"],["Danteh","D",81,"F"],["sinatraa","D",80,"F"],["Architect","D",78,"HF"],["iddqd","D",70,"H"],["moth","S",79,"M"],["sleepy","S",79,"F"],["dhaK","S",72,"M"]]],
+["OWL",2018,"SEO","Seoul Dynasty","22–18","",0,[["zunba","T",83,"O"],["Miro","T",81,"M"],["xepheR","T",75,"O"],["KuKi","T",75,"M"],["Fleta","D",84,"HF"],["Munchkin","D",82,"F"],["Bunny","D",80,"F"],["Wekeed","D",77,"F"],["tobi","S",82,"M"],["ryujehong","S",81,"F"],["Gambler","S",78,"M"],["Gido","S",72,"F"]]],
+["OWL",2018,"SHD","Shanghai Dragons","0–40","The 0–40 season",0,[["Geguri","T",73,"O"],["Fearless","T",70,"M"],["MG","T",62,"O"],["Roshan","T",62,"M"],["Xushu","T",60,"O"],["Diya","D",69,"HF"],["Ado","D",67,"F"],["Undead","D",65,"H"],["Daemin","D",60,"F"],["Altering","S",77,"M"],["Fiveking","S",67,"M"],["Freefeel","S",64,"F"],["Sky","S",61,"F"]]],
+["OWL",2019,"ATL","Atlanta Reign","16–12","Inaugural season",0,[["Pokpo","T",81,"M"],["DACO","T",80,"O"],["frd","T",78,"O"],["Gator","T",78,"O"],["Erster","D",78,"F"],["babybay","D",75,"F"],["NLaaeR","D",66,"F"],["Dogman","S",82,"F"],["Masaa","S",80,"M"],["FunnyAstro","S",71,"M"]]],
+["OWL",2019,"BOS","Boston Uprising","8–20","",0,[["Fusions","T",72,"M"],["rCk","T",71,"O"],["Axxiom","T",63,"O"],["Colourhex","D",69,"HF"],["Stellar","D",66,"F"],["AimGod","S",79,"F"],["Kellex","S",74,"M"],["blasé","S",71,"M"],["Persia","S",71,"F"],["alemao","S",66,"M"]]],
+["OWL",2019,"FLA","Florida Mayhem","6–22","",0,[["xepheR","T",72,"O"],["Gargoyle","T",70,"O"],["Fate","T",70,"M"],["Swon","T",70,"M"],["Karayan","T",68,"M"],["DPI","T",66,"O"],["BQB","D",77,"F"],["Sayaplayer","D",65,"H"],["HaGoPeun","S",77,"F"],["Kris","S",73,"M"],["Byrem","S",68,"F"],["RaiN","S",65,"M"]]],
+["OWL",2019,"HOU","Houston Outlaws","9–19","",0,[["Muma","T",74,"M"],["SPREE","T",71,"O"],["coolmatt","T",70,"O"],["Danteh","D",78,"F"],["LiNkzr","D",75,"HF"],["JAKE","D",65,"F"],["ArHaN","D",63,"F"],["Rawkus","S",79,"F"],["Boink","S",71,"M"],["Bani","S",68,"F"]]],
+["OWL",2019,"LDN","London Spitfire","16–12","",0,[["Fury","T",85,"O"],["Gesture","T",83,"M"],["Profit","D",86,"F"],["birdring","D",74,"HF"],["Guard","D",70,"F"],["Bdosin","S",86,"F"],["NUS","S",81,"M"],["Krillin","S",73,"F"],["Quatermain","S",71,"M"]]],
+["OWL",2019,"NYXL","New York Excelsior","22–6","",0,[["MekO","T",87,"O"],["Mano","T",86,"M"],["Nenne","D",85,"HF"],["Saebyeolbe","D",84,"F"],["Libero","D",82,"F"],["Fl0w3R","D",75,"HF"],["Pine","D",69,"H"],["JJoNak","S",91,"F"],["ANAMO","S",87,"M"]]],
+["OWL",2019,"PAR","Paris Eternal","11–17","",0,[["Finnsi","T",78,"O"],["LhCloudy","T",71,"M"],["BenBest","T",70,"M"],["SoOn","D",77,"HF"],["Danye","D",75,"F"],["NiCOgdh","D",72,"F"],["ShaDowBurn","D",68,"F"],["Kruise","S",77,"M"],["HyP","S",76,"F"],["Greyy","S",74,"F"]]],
+["OWL",2019,"PHI","Philadelphia Fusion","15–13","",0,[["Poko","T",83,"O"],["SADO","T",78,"M"],["Carpe","D",83,"HF"],["Eqo","D",79,"F"],["snillo","D",72,"HF"],["Kyb","D",71,"F"],["Boombox","S",85,"F"],["neptuNo","S",77,"M"],["Elk","S",75,"F"]]],
+["OWL",2019,"TOR","Toronto Defiant","8–20","",0,[["Yakpung","T",71,"M"],["sharyk","T",67,"M"],["Gods","T",66,"O"],["Logix","D",74,"HF"],["Ivy","D",70,"F"],["Mangachu","D",67,"F"],["im37","D",60,"HF"],["Neko","S",78,"F"],["Aid","S",74,"MF"],["RoKy","S",73,"M"]]],
+["OWL",2019,"WAS","Washington Justice","8–20","",0,[["SanSam","T",77,"O"],["Janus","T",74,"M"],["ELLIVOTE","T",66,"O"],["LullSiSH","T",66,"M"],["Corey","D",71,"H"],["Stratus","D",69,"F"],["Ado","D",68,"F"],["Gido","S",78,"F"],["ArK","S",78,"M"],["sleepy","S",77,"F"],["Hyeonu","S",67,"M"]]],
+["OWL",2019,"CDH","Chengdu Hunters","13–15","",0,[["Elsa","T",81,"O"],["Ameng","T",73,"M"],["LateYoung","T",72,"O"],["Jiqiren","T",68,"M"],["JinMu","D",79,"F"],["YangXiaoLong","D",73,"HF"],["Baconjack","D",71,"HF"],["Kyo","S",80,"F"],["Yveltal","S",76,"M"],["Garry","S",70,"MF"]]],
+["OWL",2019,"DAL","Dallas Fuel","10–18","",0,[["OGE","T",77,"M"],["NotE","T",76,"O"],["Mickie","T",65,"O"],["Trill","T",64,"M"],["aKm","D",74,"F"],["ZachaREEE","D",72,"F"],["Taimou","D",69,"HF"],["uNKOE","S",80,"F"],["Closer","S",79,"M"],["HarryHook","S",72,"F"]]],
+["OWL",2019,"GZC","Guangzhou Charge","15–13","",0,[["HOTBA","T",83,"O"],["Rio","T",82,"M"],["Fragi","T",71,"M"],["Bischu","T",70,"O"],["Happy","D",83,"H"],["nero","D",80,"F"],["Eileen","D",74,"F"],["Shu","S",87,"F"],["Chara","S",79,"M"],["Rise","S",71,"F"],["OnlyWish","S",70,"M"]]],
+["OWL",2019,"HZS","Hangzhou Spark","18–10","",0,[["Guxue","T",85,"M"],["Ria","T",83,"O"],["SASIN","T",71,"O"],["NoSmite","T",70,"M"],["GodsB","D",83,"HF"],["Adora","D",77,"F"],["Bazzi","D",73,"F"],["Krystal","D",73,"H"],["BeBe","S",90,"F"],["iDK","S",82,"M"],["Revenge","S",74,"F"]]],
+["OWL",2019,"LAG","Los Angeles Gladiators","17–11","",0,[["Void","T",87,"O"],["rOar","T",81,"M"],["Panker","T",68,"M"],["Decay","D",82,"F"],["Surefour","D",81,"HF"],["Shaz","S",89,"F"],["Hydration","S",75,"M"],["BigGoose","S",73,"M"],["Ripa","S",72,"F"]]],
+["OWL",2019,"LAV","Los Angeles Valiant","12–16","",0,[["SPACE","T",80,"O"],["FCTFCTN","T",70,"M"],["McGravy","T",69,"O"],["Agilities","D",74,"F"],["KSF","D",72,"HF"],["Shax","D",71,"F"],["KariV","S",78,"F"],["Custa","S",75,"M"]]],
+["OWL",2019,"SFS","San Francisco Shock","23–5","Season 2 champion; sinatraa named MVP",1,[["ChoiHyoBin","T",93,"O"],["super","T",92,"M"],["smurf","T",85,"M"],["Nevix","T",79,"O"],["sinatraa","D",99,"F"],["Striker","D",91,"F"],["Architect","D",90,"HF"],["Viol2t","S",98,"F"],["Rascal","S",90,"M"],["moth","S",87,"M"]]],
+["OWL",2019,"SEO","Seoul Dynasty","15–13","",0,[["Michelle","T",84,"O"],["Marve1","T",81,"M"],["zunba","T",80,"O"],["FITS","D",84,"F"],["Fleta","D",83,"F"],["ILLICIT","D",67,"F"],["ryujehong","S",86,"F"],["tobi","S",80,"M"],["Highly","S",79,"F"],["Jecse","S",77,"M"]]],
+["OWL",2019,"SHD","Shanghai Dragons","13–15","Won Stage 3 a year after 0–40",0,[["Gamsu","T",77,"M"],["Geguri","T",76,"O"],["envy","T",73,"O"],["DDing","D",85,"F"],["diem","D",83,"H"],["Diya","D",75,"H"],["Luffy","S",79,"F"],["Izayaki","S",79,"F"],["CoMa","S",77,"M"],["YOUNGJIN","S",73,"M"]]],
+["OWL",2019,"VAN","Vancouver Titans","25–3","Best record; Grand Finals runner-up",0,[["JJANU","T",92,"O"],["SeoMinSoo","T",90,"O"],["Bumper","T",88,"M"],["TiZi","T",78,"M"],["Haksal","D",88,"F"],["Stitch","D",84,"F"],["Hooreg","D",75,"HF"],["Twilight","S",92,"F"],["SLIME","S",88,"M"],["Rapel","S",82,"F"]]],
+["OWL",2020,"BOS","Boston Uprising","2–19","",0,[["Punk","T",75,"O"],["Fusions","T",71,"M"],["Axxiom","T",67,"M"],["mikeyy","T",65,"M"],["Jerry","D",79,"H"],["Colourhex","D",71,"F"],["Myunb0ng","S",77,"F"],["Halo","S",68,"M"]]],
+["OWL",2020,"LDN","London Spitfire","6–15","",0,[["BERNAR","T",77,"O"],["JMAC","T",76,"M"],["Jihun","T",68,"M"],["Clestyn","T",65,"O"],["Glister","D",78,"HF"],["Schwi","D",70,"F"],["Babel","D",67,"HF"],["ALTHOUGH","D",67,"F"],["Highly","S",80,"F"],["Krillin","S",74,"F"],["SanGuiNar","S",72,"M"],["Fuze","S",67,"M"]]],
+["OWL",2020,"NYXL","New York Excelsior","13–8","",0,[["HOTBA","T",82,"O"],["Mano","T",79,"M"],["BiaNcA","T",70,"O"],["Saebyeolbe","D",79,"HF"],["Nenne","D",76,"HF"],["Haksal","D",74,"F"],["WhoRU","D",73,"F"],["Libero","D",71,"F"],["JJoNak","S",84,"F"],["Anamo","S",82,"M"],["Mandu","S",68,"M"]]],
+["OWL",2020,"PAR","Paris Eternal","15–6","",0,[["Hanbin","T",90,"O"],["BenBest","T",82,"M"],["NoSmite","T",78,"M"],["Smex","T",68,"O"],["Sp9rk1e","D",88,"F"],["Xzi","D",82,"H"],["SoOn","D",80,"F"],["NiCOgdh","D",74,"F"],["FDGoD","S",84,"M"],["Fielder","S",84,"F"]]],
+["OWL",2020,"TOR","Toronto Defiant","7–14","",0,[["Nevix","T",79,"O"],["Beast","T",75,"M"],["numlocked","T",69,"M"],["Logix","D",79,"HF"],["Agilities","D",76,"F"],["Surefour","D",75,"HF"],["Mangachu","D",66,"F"],["zYKK","D",64,"F"],["KariV","S",80,"F"],["Kruise","S",71,"M"],["RoKy","S",67,"F"]]],
+["OWL",2020,"ATL","Atlanta Reign","10–11","",0,[["Hawk","T",85,"O"],["Gator","T",80,"M"],["Pokpo","T",72,"M"],["frd","T",72,"O"],["Edison","D",82,"F"],["SharP","D",78,"F"],["ErsTer","D",71,"F"],["Saucy","D",66,"F"],["Dogman","S",79,"F"],["Masaa","S",73,"M"],["Fire","S",71,"M"],["Lr1s","S",67,"F"]]],
+["OWL",2020,"FLA","Florida Mayhem","14–7","",0,[["Gargoyle","T",91,"O"],["Fate","T",83,"M"],["Karayan","T",75,"M"],["BQB","D",87,"H"],["Yaki","D",87,"F"],["Sayaplayer","D",73,"H"],["Gangnamjin","S",91,"F"],["Kris","S",81,"M"],["Byrem","S",73,"F"]]],
+["OWL",2020,"HOU","Houston Outlaws","6–15","",0,[["MekO","T",80,"O"],["Muma","T",70,"M"],["Hydration","T",69,"M"],["Danteh","D",76,"F"],["LiNkzr","D",74,"H"],["blasé","D",72,"F"],["Rapel","S",79,"F"],["Jecse","S",72,"M"],["Boink","S",66,"M"]]],
+["OWL",2020,"PHI","Philadelphia Fusion","19–2","North America top seed",0,[["SADO","T",89,"M"],["Fury","T",89,"O"],["Poko","T",85,"O"],["Carpe","D",92,"HF"],["Heesu","D",83,"F"],["Eqo","D",82,"F"],["Ivy","D",82,"F"],["ChipSa","D",75,"F"],["Alarm","S",94,"F"],["FunnyAstro","S",88,"M"],["Boombox","S",85,"F"]]],
+["OWL",2020,"WAS","Washington Justice","4–17","",0,[["rOar","T",73,"M"],["JJANU","T",68,"O"],["Decay","D",77,"HF"],["Stitch","D",75,"H"],["TTuba","D",74,"F"],["AimGod","S",77,"F"],["ArK","S",74,"M"]]],
+["OWL",2020,"CDH","Chengdu Hunters","7–14","",0,[["Elsa","T",78,"O"],["Ameng","T",71,"M"],["LateYoung","T",70,"O"],["ATing","T",64,"M"],["JinMu","D",76,"F"],["Leave","D",76,"HF"],["Baconjack","D",62,"H"],["Molly","S",75,"F"],["Kyo","S",71,"F"],["Yveltal","S",71,"M"],["Lengsa","S",67,"MF"]]],
+["OWL",2020,"GZC","Guangzhou Charge","14–7","",0,[["Cr0ng","T",89,"O"],["Rio","T",85,"M"],["Happy","D",83,"H"],["nero","D",80,"F"],["Eileen","D",79,"F"],["Krystal","D",68,"F"],["Shu","S",89,"F"],["Chara","S",80,"M"],["neptuNo","S",70,"M"],["Wya","S",68,"F"]]],
+["OWL",2020,"HZS","Hangzhou Spark","10–11","",0,[["Guxue","T",81,"M"],["Ria","T",75,"O"],["QoQ","T",75,"O"],["SASIN","T",73,"O"],["GodsB","D",77,"HF"],["Adora","D",73,"F"],["Architect","D",73,"F"],["Ado","D",69,"F"],["BeBe","S",82,"F"],["iDK","S",75,"M"],["M1ka","S",71,"M"],["Coldest","S",70,"F"]]],
+["OWL",2020,"SEO","Seoul Dynasty","9–12","Grand Finals runner-up",0,[["Marve1","T",82,"O"],["Gesture","T",80,"M"],["Michelle","T",78,"O"],["Toyou","T",76,"O"],["Profit","D",88,"F"],["FITS","D",86,"HF"],["ILLICIT","D",74,"F"],["Bdosin","S",80,"F"],["tobi","S",78,"M"],["Creative","S",76,"F"],["SLIME","S",75,"M"]]],
+["OWL",2020,"SHD","Shanghai Dragons","19–2","Fleta named MVP",0,[["Void","T",94,"O"],["Fearless","T",89,"M"],["Stand1","T",78,"M"],["Geguri","T",75,"O"],["Fleta","D",96,"F"],["LIP","D",90,"HF"],["DDing","D",82,"F"],["diem","D",76,"H"],["Diya","D",69,"H"],["Izayaki","S",88,"F"],["LeeJaeGon","S",82,"M"],["Luffy","S",81,"F"]]],
+["OWL",2020,"DAL","Dallas Fuel","9–12","",0,[["NotE","T",82,"O"],["Gamsu","T",77,"M"],["Trill","T",69,"M"],["Doha","D",80,"F"],["ONIGOD","D",76,"H"],["aKm","D",67,"H"],["Crimzo","S",85,"F"],["Closer","S",74,"M"],["Paintbrush","S",68,"M"],["uNKOE","S",67,"F"]]],
+["OWL",2020,"LAG","Los Angeles Gladiators","11–10","",0,[["SPACE","T",86,"O"],["OGE","T",80,"M"],["Bischu","T",72,"O"],["LhCloudy","T",69,"M"],["birdring","D",84,"HF"],["kevster","D",79,"F"],["MirroR","D",75,"F"],["Jaru","D",68,"HF"],["Shaz","S",84,"F"],["BigG00se","S",76,"M"]]],
+["OWL",2020,"LAV","Los Angeles Valiant","11–10","",0,[["McGravy","T",82,"O"],["Dreamer","T",78,"M"],["GiG","T",64,"M"],["KSP","D",84,"H"],["Shax","D",79,"F"],["KSF","D",74,"F"],["Apply","D",63,"F"],["Lastro","S",82,"F"],["RaiN","S",80,"M"]]],
+["OWL",2020,"SFS","San Francisco Shock","18–3","Back-to-back champion",1,[["ChoiHyoBin","T",95,"O"],["smurf","T",90,"M"],["super","T",82,"M"],["Striker","D",94,"F"],["ANS","D",92,"H"],["Rascal","D",82,"F"],["Ta1yo","D",79,"F"],["Viol2t","S",97,"F"],["Twilight","S",88,"F"],["moth","S",86,"M"]]],
+["OWL",2020,"VAN","Vancouver Titans","6–15","",0,[["ShRedLock","T",74,"M"],["KSAA","T",73,"O"],["Dalton","D",75,"F"],["sHockWave","D",74,"H"],["Tsuna","D",63,"HF"],["Roolf","S",74,"F"],["CarCar","S",67,"M"]]],
+["OWL",2021,"CDH","Chengdu Hunters","11–5","Leave named MVP",0,[["Lateyoung","T",81,"O"],["GA9A","T",78,"M"],["Ameng","T",69,"M"],["leave","D",96,"F"],["JinMu","D",85,"F"],["Jimmy","D",71,"H"],["TAROCOOK1E","D",71,"H"],["Yveltal","S",77,"M"],["Mmonk","S",77,"F"],["Nisha","S",73,"M"],["Farway1987","S",73,"F"]]],
+["OWL",2021,"GZC","Guangzhou Charge","5–11","",0,[["Cr0ng","T",79,"O"],["Rio","T",77,"M"],["Jihun","T",67,"M"],["ChoiSehwan","D",81,"F"],["Eileen","D",74,"HF"],["MYKaylee","D",66,"H"],["KariV","S",80,"F"],["Mandu","S",75,"M"]]],
+["OWL",2021,"HZS","Hangzhou Spark","7–9","",0,[["BERNAR","T",81,"O"],["Guxue","T",78,"M"],["LiGe","T",67,"O"],["Shy","D",82,"HF"],["Architect","D",76,"F"],["SeoMinSoo","D",72,"F"],["MCD","S",81,"F"],["iDK","S",77,"M"],["M1ka","S",72,"M"],["ColdEst","S",69,"F"]]],
+["OWL",2021,"LAV","Los Angeles Valiant","0–16","",0,[["ShowCheng","T",70,"O"],["Silver3","T",64,"M"],["NvM","T",64,"M"],["MoLanran","D",66,"F"],["Krystal","D",66,"H"],["Wya","S",72,"F"],["Highbee","S",65,"M"]]],
+["OWL",2021,"NYXL","New York Excelsior","7–9","",0,[["BiaNcA","T",78,"O"],["Yakpung","T",75,"M"],["Kalios","T",73,"O"],["Flora","D",80,"HF"],["Gwangboong","D",72,"H"],["FEATH5R","D",71,"F"],["JJoNak","S",80,"F"],["Friday","S",75,"M"]]],
+["OWL",2021,"PHI","Philadelphia Fusion","10–6","",0,[["HOTBA","T",83,"O"],["Mano","T",80,"M"],["Poko","T",68,"O"],["Carpe","D",81,"HF"],["Eqo","D",77,"F"],["Rascal","D",74,"F"],["sHockWave","D",70,"HF"],["Alarm","S",85,"F"],["FunnyAstro","S",79,"M"],["tobi","S",78,"M"]]],
+["OWL",2021,"SEO","Seoul Dynasty","12–4","",0,[["Toyou","T",84,"O"],["Gesture","T",76,"M"],["Marve1","T",74,"M"],["Profit","D",85,"F"],["FITS","D",84,"H"],["Saebyeolbe","D",68,"F"],["Anamo","S",83,"M"],["Creative","S",82,"F"]]],
+["OWL",2021,"SHD","Shanghai Dragons","12–4","Season 4 champion, swept Atlanta 4–0",1,[["Void","T",94,"O"],["Fate","T",89,"M"],["LIP","D",97,"HF"],["Fleta","D",94,"F"],["WhoRU","D",81,"F"],["Develop","D",77,"H"],["Izayaki","S",94,"F"],["LeeJaeGon","S",91,"M"],["Molly","S",76,"F"]]],
+["OWL",2021,"ATL","Atlanta Reign","11–5","Grand Finals runner-up",0,[["Hawk","T",88,"O"],["Gator","T",84,"M"],["Pelican","D",90,"F"],["Edison","D",84,"F"],["Kai","D",84,"H"],["Ir1s","S",90,"F"],["Masaa","S",82,"M"]]],
+["OWL",2021,"BOS","Boston Uprising","7–9","",0,[["Stand1","T",82,"M"],["Punk","T",79,"O"],["GaeBullSsi","T",77,"O"],["Fusions","T",67,"M"],["im37","D",77,"HF"],["Valentine","D",77,"F"],["Colourhex","D",69,"HF"],["Myunb0ng","S",85,"F"],["Faith","S",79,"M"]]],
+["OWL",2021,"DAL","Dallas Fuel","11–5","",0,[["Hanbin","T",92,"O"],["Fearless","T",90,"M"],["Sp9rk1e","D",90,"F"],["Doha","D",84,"F"],["Pine","D",68,"H"],["Fielder","S",94,"F"],["Jecse","S",82,"M"],["Rapel","S",72,"F"]]],
+["OWL",2021,"FLA","Florida Mayhem","5–11","",0,[["Gargoyle","T",81,"O"],["OGE","T",79,"M"],["Yaki","D",81,"F"],["BQB","D",78,"H"],["Checkmate","D",63,"F"],["Gangnamjin","S",85,"F"],["SLIME","S",75,"M"]]],
+["OWL",2021,"HOU","Houston Outlaws","11–5","",0,[["PIGGY","T",88,"O"],["JJANGGU","T",80,"M"],["Dreamer","T",73,"M"],["Happy","D",86,"HF"],["Danteh","D",83,"F"],["KSF","D",72,"F"],["JAKE","D",70,"F"],["Crimzo","S",88,"F"],["Joobi","S",78,"M"]]],
+["OWL",2021,"LDN","London Spitfire","1–15","",0,[["Molf1g","T",76,"O"],["Hadi","T",73,"M"],["SparkR","D",71,"H"],["Shax","D",71,"F"],["blasé","D",67,"F"],["Hybrid","D",65,"H"],["Ripa","S",75,"F"],["Kellex","S",72,"M"]]],
+["OWL",2021,"LAG","Los Angeles Gladiators","11–5","",0,[["SPACE","T",89,"O"],["MuZe","T",83,"M"],["kevster","D",92,"F"],["Birdring","D",82,"HF"],["MirroR","D",78,"F"],["Shu","S",89,"F"],["skewed","S",82,"M"],["moth","S",74,"M"]]],
+["OWL",2021,"PAR","Paris Eternal","8–8","",0,[["Vestola","T",79,"O"],["Daan","T",78,"M"],["Naga","D",81,"F"],["Onigod","D",79,"HF"],["Tsuna","D",72,"F"],["Kaan","S",81,"F"],["dridro","S",78,"M"]]],
+["OWL",2021,"SFS","San Francisco Shock","12–4","",0,[["ChoiHyoBin","T",85,"O"],["super","T",83,"M"],["smurf","T",80,"M"],["nero","D",85,"F"],["Glister","D",77,"HF"],["ANS","D",72,"H"],["ta1yo","D",72,"F"],["Viol2t","S",89,"F"],["FDGoD","S",79,"M"],["Twilight","S",79,"F"]]],
+["OWL",2021,"TOR","Toronto Defiant","9–7","",0,[["Michelle","T",85,"O"],["SADO","T",78,"M"],["Heesu","D",80,"HF"],["Na1st","D",79,"F"],["Aspire","D",79,"F"],["Logix","D",71,"HF"],["Lastro","S",84,"F"],["ANSOONJAE","S",81,"M"],["Aztac","S",71,"F"]]],
+["OWL",2021,"VAN","Vancouver Titans","1–15","",0,[["frdwnr","T",71,"O"],["ChangSik","T",62,"M"],["Dalton","D",71,"F"],["LiNkzr","D",65,"HF"],["Teru","D",65,"F"],["Roolf","S",70,"F"],["Fire","S",67,"M"]]],
+["OWL",2021,"WAS","Washington Justice","9–7","",0,[["Mag","T",84,"M"],["Fury","T",83,"O"],["Decay","D",88,"F"],["Assassin","D",78,"F"],["Jerry","D",74,"H"],["TTuba","D",66,"F"],["BeBe","S",86,"F"],["Closer","S",82,"M"]]],
+["OWL",2022,"CDH","Chengdu Hunters","9–15","",0,[["GA9A","T",75,"M"],["DAI","T",66,"O"],["Leave","D",79,"H"],["JinMu","D",78,"F"],["Nisha","S",76,"M"],["Mmonk","S",76,"F"]]],
+["OWL",2022,"GZC","Guangzhou Charge","9–15","",0,[["PIGGY","T",78,"O"],["Cr0ng","T",70,"MO"],["ChoiSehwan","D",81,"F"],["Jimmy","D",71,"H"],["Apr1ta","D",66,"HF"],["Farway1987","S",79,"F"],["Xerneas","S",77,"M"]]],
+["OWL",2022,"HZS","Hangzhou Spark","11–13","",0,[["Guxue","T",79,"M"],["BERNAR","T",79,"MO"],["shy","D",81,"H"],["AlphaYi","D",81,"F"],["Pineapple","D",72,"F"],["Architect","D",67,"F"],["irony","S",80,"F"],["Superich","S",77,"M"],["Teru","S",70,"F"],["Neko","S",64,"M"]]],
+["OWL",2022,"LAV","Los Angeles Valiant","7–17","",0,[["Marve1","T",74,"MO"],["SASIN","T",68,"O"],["Becky","D",78,"F"],["Diya","D",73,"H"],["Ezhan","D",73,"H"],["Haker","D",66,"F"],["Innovation","D",64,"F"],["Lengsa","S",74,"M"],["Molly","S",73,"F"]]],
+["OWL",2022,"PHI","Philadelphia Fusion","11–13","",0,[["Belosrea","T",77,"M"],["Fury","T",77,"MO"],["ZEST","D",82,"F"],["MN3","D",77,"H"],["Carpe","D",73,"H"],["AimGod","S",80,"F"],["FiXa","S",79,"M"]]],
+["OWL",2022,"SEO","Seoul Dynasty","19–5","East top seed",0,[["smurf","T",89,"MO"],["Profit","D",86,"F"],["Stalk3r","D",85,"F"],["FITS","D",84,"H"],["Vindaim","S",84,"M"],["Ir1s","S",78,"F"]]],
+["OWL",2022,"SHD","Shanghai Dragons","18–6","",0,[["Void","T",83,"MO"],["Fate","T",80,"M"],["LIP","D",92,"H"],["WhoRU","D",85,"F"],["Fleta","D",79,"F"],["Izayaki","S",90,"F"],["LeeJaeGon","S",83,"M"],["BeBe","S",83,"F"]]],
+["OWL",2022,"ATL","Atlanta Reign","13–11","",0,[["Hawk","T",79,"O"],["Gator","T",72,"M"],["Kai","D",84,"H"],["Speedily","D",78,"F"],["nero","D",76,"F"],["Venom","D",76,"F"],["UltraViolet","S",83,"F"],["Ojee","S",81,"M"],["vigilante","S",78,"MF"]]],
+["OWL",2022,"BOS","Boston Uprising","10–14","",0,[["Punk","T",79,"O"],["Mag","T",71,"M"],["ITSAL","T",70,"M"],["Valentine","D",78,"F"],["Victoria","D",77,"H"],["Seeker","D",74,"H"],["Faith","S",83,"M"],["Crimzo","S",83,"F"],["MCD","S",73,"F"]]],
+["OWL",2022,"DAL","Dallas Fuel","20–4","Season 5 champion; Fearless Finals MVP",1,[["Hanbin","T",95,"MO"],["Fearless","T",90,"M"],["Edison","D",90,"HF"],["Sp9rk1e","D",90,"F"],["Doha","D",88,"F"],["guriyo","D",75,"H"],["Fielder","S",97,"F"],["ChiYo","S",95,"M"]]],
+["OWL",2022,"FLA","Florida Mayhem","12–12","",0,[["SOMEONE","T",81,"M"],["Checkmate","D",82,"F"],["Hydron","D",81,"H"],["Xzi","D",71,"H"],["Rupal","S",79,"F"],["Anamo","S",78,"M"],["SirMajed","S",74,"F"]]],
+["OWL",2022,"HOU","Houston Outlaws","16–8","",0,[["Danteh","T",74,"O"],["Doge","T",70,"M"],["MER1T","D",86,"H"],["Pelican","D",85,"F"],["Lastro","S",83,"MF"],["Lep","S",78,"M"],["Creative","S",76,"F"]]],
+["OWL",2022,"LDN","London Spitfire","14–10","",0,[["Hadi","T",87,"M"],["Poko","T",74,"O"],["SparkR","D",85,"H"],["Backbone","D",75,"F"],["Shax","D",74,"F"],["Landon","S",85,"F"],["Admiral","S",81,"M"],["Kaan","S",67,"F"]]],
+["OWL",2022,"LAG","Los Angeles Gladiators","18–6","",0,[["Reiner","T",85,"MO"],["SPACE","T",82,"MO"],["kevster","D",93,"F"],["Happy","D",80,"H"],["Shu","S",86,"F"],["FunnyAstro","S",85,"M"],["skewed","S",85,"MF"]]],
+["OWL",2022,"NYXL","New York Excelsior","4–20","",0,[["Kellan","T",78,"MO"],["Flora","D",78,"H"],["Yaki","D",78,"F"],["Gangnamjin","S",75,"MF"],["ANSOONJAE","S",71,"M"],["Ho1","S",71,"F"]]],
+["OWL",2022,"PAR","Paris Eternal","1–23","",0,[["Krawi","T",61,"MO"],["Dove","D",66,"H"],["wub","D",62,"F"],["MaltheL","D",60,"F"],["Lukemino","S",62,"MF"],["Rakattack","S",60,"M"]]],
+["OWL",2022,"SFS","San Francisco Shock","20–4","Grand Finals runner-up; Proper named MVP",0,[["Coluge","T",88,"MO"],["mikeyy","T",77,"M"],["Proper","D",99,"F"],["Kilo","D",86,"H"],["Striker","D",82,"F"],["s9mm","D",80,"HF"],["Viol2t","S",92,"MF"],["FiNN","S",88,"F"]]],
+["OWL",2022,"TOR","Toronto Defiant","12–12","",0,[["HOTBA","T",77,"MO"],["MuZe","T",75,"M"],["Heesu","D",81,"H"],["ALTHOUGH","D",76,"F"],["Finale","D",75,"F"],["Twilight","S",81,"F"],["CH0R0NG","S",79,"M"]]],
+["OWL",2022,"VAN","Vancouver Titans","5–19","",0,[["False","T",73,"O"],["Aspire","D",77,"HF"],["k1ng","D",71,"F"],["MirroR","D",61,"F"],["Skairipa","S",71,"F"],["Masaa","S",70,"M"],["Aztac","S",70,"MF"]]],
+["OWL",2022,"WAS","Washington Justice","11–13","",0,[["Kalios","T",74,"MO"],["Decay","D",84,"F"],["Assassin","D",74,"F"],["Krillin","S",78,"F"],["OPENER","S",77,"M"]]],
+["OWL",2023,"DAL","Dallas Fuel","","",0,[["Hanbin","T",91,"MO"],["Sp9rk1e","D",84,"F"],["Edison","D",82,"F"],["MCD","S",79,"F"],["Bliss","S",76,"M"]]],
+["OWL",2023,"GZC","Guangzhou Charge","","",0,[["PIGGY","T",81,"O"],["GA9A","T",76,"M"],["JinMu","D",80,"F"],["ChoiSehwan","D",77,"F"],["Jimmy","D",72,"H"],["Farway1987","S",77,"F"],["Xerneas","S",76,"M"]]],
+["OWL",2023,"HZS","Hangzhou Spark","","Third place",0,[["Guxue","T",78,"M"],["Twenty","T",75,"O"],["Leave","D",92,"F"],["shy","D",80,"H"],["Mmonk","S",77,"F"],["Lengsa","S",76,"M"],["Pineapple","S",75,"F"]]],
+["OWL",2023,"SEO","Seoul Dynasty","","",0,[["Void","T",84,"O"],["Belosrea","T",76,"M"],["Profit","D",81,"F"],["Ezhan","D",74,"H"],["Prophet","D",72,"H"],["SeonJun","D",72,"F"],["Vindaim","S",80,"M"],["Krillin","S",77,"F"],["LeeSooMin","S",72,"F"]]],
+["OWL",2023,"SI","Seoul Infernal","","",0,[["Mag","T",87,"M"],["Poko","T",76,"O"],["ZEST","D",89,"F"],["MN3","D",77,"H"],["skewed","S",89,"F"],["FiXa","S",86,"M"],["Hyunjae","S",77,"M"]]],
+["OWL",2023,"SHD","Shanghai Dragons","","",0,[["Fleta","T",83,"O"],["Fate","T",81,"M"],["Heesu","D",78,"H"],["Viper","D",74,"F"],["Ir1s","S",82,"F"],["BeBe","S",81,"F"],["Gangnamjin","S",80,"F"]]],
+["OWL",2023,"ATL","Atlanta Reign","","Midseason Madness winner",0,[["Hawk","T",82,"O"],["D0NGHAK","T",78,"M"],["LIP","D",92,"H"],["Stalk3r","D",90,"F"],["Fielder","S",92,"F"],["ChiYo","S",91,"M"],["vigilante","S",78,"F"]]],
+["OWL",2023,"BOS","Boston Uprising","","",0,[["smurf","T",83,"M"],["Kalios","T",75,"O"],["Striker","D",84,"F"],["Decay","D",83,"HF"],["birdring","D",81,"H"],["Izayaki","S",84,"F"],["LeeJaeGon","S",83,"M"],["Twilight","S",79,"F"]]],
+["OWL",2023,"FLA","Florida Mayhem","","Final OWL champion, 4–0 over Houston; Someone named MVP",1,[["SOMEONE","T",96,"M"],["MER1T","D",93,"H"],["Checkmate","D",85,"F"],["Sauna","D",80,"F"],["CH0R0NG","S",83,"M"],["Rupal","S",83,"F"],["MAKA","S",82,"F"]]],
+["OWL",2023,"HOU","Houston Outlaws","","Grand Finals runner-up",0,[["Fearless","T",92,"M"],["Gargoyle","T",88,"O"],["Pelican","D",86,"F"],["Happy","D",84,"H"],["Viol2t","S",88,"F"],["Shu","S",88,"F"]]],
+["OWL",2023,"LDN","London Spitfire","","",0,[["Hadi","T",82,"M"],["SparkR","D",81,"H"],["Backbone","D",75,"F"],["Sauna","D",75,"F"],["Lethal","D",73,"H"],["Landon","S",81,"F"],["Admiral","S",79,"M"],["Skairipa","S",72,"F"]]],
+["OWL",2023,"LAG","Los Angeles Gladiators","","",0,[["Danteh","T",79,"MO"],["Marve1","T",75,"M"],["kevster","D",86,"F"],["Kai","D",80,"H"],["Yaki","D",79,"F"],["FunnyAstro","S",81,"M"],["Lastro","S",80,"F"],["cal","S",75,"F"],["Babel","S",71,"F"]]],
+["OWL",2023,"LAV","Los Angeles Valiant","","",0,[["Krawi","T",66,"M"],["Seeker","D",74,"H"],["NOS","D",73,"F"],["Lyar","S",73,"M"],["Cjay","S",73,"F"],["Paintbrush","S",70,"M"]]],
+["OWL",2023,"NYXL","New York Excelsior","","",0,[["Kellan","T",76,"M"],["FITS","D",79,"H"],["sHockWave","D",74,"H"],["Seicoe","D",73,"F"],["Creative","S",78,"F"],["Ojee","S",77,"M"],["Lep","S",75,"M"],["Aniyun","S",73,"F"],["Halo","S",69,"M"]]],
+["OWL",2023,"SFS","San Francisco Shock","","",0,[["Junbin","T",74,"M"],["MAX","T",74,"O"],["Proper","D",90,"F"],["Striker","D",84,"F"],["Probe","D",74,"H"],["HeeSang","D",72,"F"],["FiNN","S",82,"F"],["Vindaim","S",79,"M"],["Renko","S",74,"F"],["Lukemino","S",68,"MF"]]],
+["OWL",2023,"TOR","Toronto Defiant","","",0,[["Coluge","T",81,"O"],["Hydron","D",79,"H"],["Speedily","D",76,"F"],["s9mm","D",76,"F"],["Spectra","D",75,"F"],["UltraViolet","S",80,"F"],["Ojee","S",78,"M"],["OPENER","S",76,"M"],["SirMajed","S",75,"F"]]],
+["OWL",2023,"VAN","Vancouver Titans","","",0,[["Punk","T",76,"MO"],["Aspire","D",75,"HF"],["HeeSang","D",71,"F"],["Sugarfree","D",71,"F"],["Crimzo","S",81,"F"],["Faith","S",78,"M"]]],
+["OWL",2023,"VEG","Vegas Eternal","","",0,[["Toyou","T",80,"O"],["Vulcan","T",72,"O"],["Finale","D",75,"F"],["KNIFE","D",74,"F"],["Dove","D",70,"HF"],["MaltheL","D",66,"F"],["Irony","S",78,"F"],["Rakattack","S",67,"M"],["Lukemino","S",67,"MF"]]],
+["OWCS",2024,"TOR","Toronto Defiant","","",0,[["Someone","T",87,"M"],["MER1T","D",87,"H"],["Sugarfree","D",82,"F"],["Rupal","S",82,"F"],["Vega","S",79,"M"]]],
+["OWCS",2024,"NTMR","NTMR","","",0,[["Infekted","T",82,"M"],["CLEAR","T",78,"MO"],["zeruhh","D",83,"F"],["seeker","D",76,"H"],["Cjay","S",78,"F"],["Admiral","S",77,"M"],["zzz","S",76,"F"],["zss","S",76,"F"]]],
+["OWCS",2024,"NRG","NRG Shock","","",0,[["Kellan","T",77,"M"],["Attack","T",76,"O"],["TR33","D",82,"H"],["PGE","D",76,"H"],["scissors","D",76,"F"],["UltraViolet","S",79,"F"],["cal","S",75,"F"],["Rakattack","S",73,"M"]]],
+["OWCS",2024,"SSG","Spacestation Gaming","","The London Spitfire reunion",0,[["Hadi","T",87,"M"],["KSAA","T",82,"O"],["SparkR","D",83,"H"],["Backbone","D",82,"F"],["Seicoe","D",80,"F"],["FunnyAstro","S",82,"M"],["Landon","S",82,"F"]]],
+["OWCS",2024,"ENCE","ENCE","","",0,[["Chase","T",80,"M"],["Vestola","T",79,"O"],["kevster","D",91,"F"],["Kai","D",80,"H"],["WMaimone","D",79,"F"],["MirroR","D",76,"F"],["Skai","S",76,"F"],["Kellex","S",76,"M"],["Rakattack","S",73,"M"]]],
+["OWCS",2024,"TM","Twisted Minds","","",0,[["TVNT","T",83,"O"],["Quartz","D",91,"H"],["Youbi","D",82,"F"],["LBBD7","D",82,"F"],["vigilante","S",79,"F"],["MCD","S",77,"F"],["Bliss","S",76,"M"],["crispy","S",75,"M"]]],
+["OWCS",2024,"FLC","Team Falcons","","World Finals champion in Stockholm; Stalk3r MVP",1,[["Hanbin","T",95,"MO"],["smurf","T",91,"M"],["Proper","D",96,"F"],["Stalk3r","D",95,"F"],["Happy","D",88,"H"],["Fielder","S",95,"F"],["ChiYo","S",94,"M"],["SirMajed","S",77,"F"]]],
+["OWCS",2024,"CR","Crazy Raccoon","","Esports World Cup champion; World Finals runner-up",1,[["Junbin","T",90,"M"],["MAX","T",86,"O"],["LIP","D",95,"H"],["HeeSang","D",88,"F"],["Shu","S",94,"F"],["CH0R0NG","S",86,"M"]]],
+["OWCS",2024,"BLD","Bleed Esports","","",0,[["CLEAR","T",77,"MO"],["Yoshinori2k","D",75,"F"],["HVS","D",74,"H"],["lumi","S",75,"M"],["Ace","S",74,"MF"],["PaLee","S",74,"F"]]],
+["OWCS",2024,"ZETA","ZETA DIVISION","","",0,[["Fearless","T",85,"M"],["BERNAR","T",80,"MO"],["Flora","D",83,"H"],["AlphaYi","D",80,"F"],["Viol2t","S",85,"F"],["FiNN","S",83,"F"]]],
+["OWCS",2024,"FNC","Fnatic","","",0,[["D0NGHAK","T",76,"M"],["Attack","T",75,"O"],["Checkmate","D",82,"F"],["KNIFE","D",79,"F"],["Viper","D",77,"F"],["Izayaki","S",80,"F"],["LeeJaeGon","S",78,"M"]]],
+["OWCS",2024,"LGD","LGD.OA","","",0,[["Guxue","T",78,"M"],["Leave","D",83,"F"],["shy","D",78,"H"],["Mmonk","S",77,"F"],["Lengsa","S",76,"M"]]],
+["OWCS",2024,"GG","Gaimin Gladiators","","",0,[["Tred","T",74,"O"],["Naga","D",77,"F"],["xzodyal","D",74,"H"],["FDGod","S",74,"M"],["Lv1Crook","S",74,"MF"],["yoham","S",73,"F"]]],
+["OWCS",2024,"VP","Virtus.pro","","",0,[["Raajaro","T",75,"MO"],["Sauna","D",78,"F"],["sHockWave","D",76,"H"],["Galaa","S",79,"F"],["Khenail","S",75,"F"]]],
+["OWCS",2024,"TU","Toronto Ultra","","Esports World Cup runner-up",0,[["SOMEONE","T",90,"M"],["MER1T","D",90,"H"],["Sugarfree","D",84,"F"],["Rupal","S",84,"F"],["Vega","S",82,"M"]]],
+["OWCS",2024,"M80","M80","","",0,[["Coluge","T",79,"O"],["TR33","D",80,"H"],["Spectra","D",75,"F"],["UltraViolet","S",79,"F"],["Lyar","S",73,"M"]]],
+["OWCS",2024,"ROC","ROC Esports","","",0,[["Kani","T",74,"O"],["neil","T",74,"M"],["Nitrao","D",74,"H"],["Lucas42g","D",74,"F"],["Sloth","D",73,"H"],["Scarione","S",74,"M"],["Froakie","S",74,"F"]]],
+["OWCS",2024,"MKR","Mkers","","",0,[["Punk","T",76,"MO"],["TOPDRAGON","D",78,"F"],["Neuu","D",74,"H"],["Colourhex","D",73,"HF"],["Ackyyy","S",76,"F"],["OPENER","S",75,"M"]]],
+["OWCS",2025,"CR","Crazy Raccoon","","",0,[["JunBin","T",84,"M"],["MAX","T",84,"O"],["LIP","D",91,"H"],["HeeSang","D",84,"F"],["SP1NT","D",78,"F"],["Shu","S",88,"F"],["CH0R0NG","S",82,"M"]]],
+["OWCS",2025,"FLC","Team Falcons","","Midseason Championship (EWC) winner",1,[["Hanbin","T",94,"MO"],["SOMEONE","T",91,"M"],["Proper","D",96,"F"],["Stalk3r","D",95,"F"],["MER1T","D",93,"H"],["ChiYo","S",93,"M"],["Fielder","S",93,"F"]]],
+["OWCS",2025,"T1","T1","","",0,[["DONGHAK","T",88,"M"],["Jasm1ne","T",80,"O"],["Proud","D",91,"H"],["ZEST","D",91,"F"],["Viper","D",75,"F"],["skewed","S",90,"F"],["vigilante","S",90,"F"]]],
+["OWCS",2025,"VAR","VARREL","","",0,[["KSG","T",77,"M"],["Nico","D",78,"HF"],["qki","D",77,"F"],["TOPDRAGON","D",77,"F"],["Sley","S",77,"MF"],["Qloud","S",76,"F"],["Mimoza","S",76,"F"]]],
+["OWCS",2025,"TL","Team Liquid","","",0,[["Infekted","T",86,"M"],["zeruhh","D",84,"F"],["TR33","D",82,"H"],["knife","D",77,"F"],["Rupal","S",82,"F"],["Vega","S",80,"M"]]],
+["OWCS",2025,"SSG","Spacestation Gaming","","",0,[["Hawk","T",78,"O"],["sugarfree","D",86,"F"],["Kronik","D",80,"H"],["cjay","S",84,"F"],["Lep","S",76,"M"]]],
+["OWCS",2025,"GK","Geekay Esports","","",0,[["cuFFa","T",76,"M"],["Lethal","D",78,"H"],["WMaimone","D",78,"F"],["UltraViolet","S",80,"F"],["Admiral","S",74,"M"]]],
+["OWCS",2025,"TM","Twisted Minds","","World Finals champion, 4–1 over Al Qadsiah",1,[["TVNT","T",94,"O"],["KSAA","T",85,"O"],["Quartz","D",95,"H"],["Youbi","D",91,"F"],["Seicoe","D",91,"F"],["Simple","S",95,"F"],["FunnyAstro","S",93,"M"]]],
+["OWCS",2025,"QAD","Al Qadsiah","","Runner-up at EWC and World Finals",0,[["ZIYAD","T",88,"O"],["Chase","T",84,"M"],["CheckMate","D",88,"F"],["LBBD7","D",86,"F"],["Landon","S",90,"F"],["Haku","S",82,"F"],["Kellex","S",82,"M"]]],
+["OWCS",2025,"PEPS","Team Peps","","",0,[["WillyS","T",73,"O"],["Zorrow","D",74,"H"],["SoOn","D",73,"HF"],["Dip","D",73,"F"],["Xeriongdh","S",78,"F"],["FDGod","S",74,"M"]]],
+["OWCS",2025,"WBG","Weibo Gaming","","",0,[["Guxue","T",86,"M"],["LiGe","T",76,"O"],["Leave","D",90,"F"],["shy","D",82,"H"],["Apr1ta","D",70,"HF"],["Mmonk","S",80,"F"],["Mew","S",75,"M"]]],
+["OWCS",2025,"TCC","Team CC","","",0,[["GAGA","T",74,"M"],["BILIDENG","T",73,"O"],["Pineapple","D",78,"F"],["Kaneki","D",75,"F"],["Farway2025","S",76,"F"],["HaoYoQian","S",73,"M"],["Unkn0w","S",73,"M"]]],
+["OWCS",2025,"AGAL","All Gamers Global","","",0,[["Jasm1ne","T",77,"O"],["Mealgaru","T",76,"M"],["Ade","D",77,"H"],["SeonJun","D",76,"F"],["MAKA","S",76,"F"],["LeeSooMin","S",73,"F"]]],
+["OWCS",2025,"TGG","The Gatos Guapos","","",0,[["Punk","T",74,"MO"],["Nyang","D",73,"H"],["Colourhex","D",73,"HF"],["Lightt","D",73,"H"],["Ackyyy","S",73,"F"],["Rakattack","S",69,"M"]]],
+["OWCS",2025,"SIGN","Sign Esports","","",0,[["Painkiller","T",74,"M"],["RhynO","T",74,"M"],["Kronik","D",80,"H"],["Rokit","D",77,"F"],["Lukemino","S",75,"MF"],["Lep","S",75,"M"]]],
+["OWCS",2025,"VP","Virtus.pro","","",0,[["eisgnom","T",77,"O"],["Vestola","T",76,"O"],["sHockWave","D",77,"H"],["JaeWoo","D",77,"F"],["FiXa","S",82,"M"],["Galaa","S",80,"F"]]],
+["OWCS",2025,"ROC","ROC Esports","","",0,[["Belosrea","T",75,"M"],["Taejong","D",76,"F"],["JinMu","D",75,"F"],["Diya","D",73,"H"],["Lengsa","S",74,"M"],["chamomile","S",72,"F"]]],
+["OWCS",2025,"ZK","ZoKorp Esports","","",0,[["Kani","T",70,"O"],["Love","D",72,"H"],["WilmaFistFit","D",72,"F"],["tunder","D",72,"H"],["Abbs","S",72,"F"],["StillKIWI","S",72,"M"],["Poke","S",72,"F"]]]];
+const COLORS={"ATL":"#e0334a","BOS":"#4a78e0","CDH":"#ffa000","DAL":"#3b95ff","FLA":"#fedb00","GZC":"#67b2c4","HZS":"#fb7299","HOU":"#97d700","LAG":"#9b6bff","LAV":"#4fb04a","LDN":"#59cbe8","NYXL":"#4b82ff","PAR":"#d0436a","PHI":"#ff9e1b","SFS":"#ff6a2a","SEO":"#d4ab2a","SHD":"#ff4a4a","TOR":"#e8e8e8","VAN":"#2fc12a","WAS":"#d23a5a","VEG":"#c9a0ff","SI":"#ff6a3c","FLC":"#19c070","CR":"#dcdcdc","SSG":"#a77bff","TM":"#b48cff","QAD":"#ffd200","T1":"#ff2a4a","TL":"#5aaeff","NTMR":"#ff8fb0","NRG":"#ff6a2a","ENCE":"#5fa8ff","ZETA":"#f0f0f0","FNC":"#ff6a00","LGD":"#ff4d4d","GG":"#ffd23f","VP":"#ff7a2a","TU":"#b9a0ff","M80":"#7ad0ff","ROC":"#ff5a5a","MKR":"#ffb84d","BLD":"#ff3d6e","AGAL":"#7fd3ff","VAR":"#9ad86b","TGG":"#ffb3d1","GK":"#7ef0c2","SIGN":"#c2c2ff","WBG":"#ff7070","TCC":"#ffa66b","ZK":"#8fe3ff","PEPS":"#ff9ad5"};
+
+const SEASONS = RAW.map((r,i)=>({id:i,lg:r[0],yr:r[1],ab:r[2],team:r[3],rec:r[4],note:r[5],champ:!!r[6],
+  players:r[7].map(([n,ro,ra,sub])=>({n,ro,ra,sub}))}));
+
+/* One spelling per player: the most common form across seasons (mixed case wins ties). */
+{const forms={};SEASONS.forEach(s=>s.players.forEach(p=>{const k=p.n.toLowerCase();(forms[k]=forms[k]||{})[p.n]=(forms[k][p.n]||0)+1;}));
+ const canon={};for(const k in forms){canon[k]=Object.entries(forms[k]).sort((a,b)=>b[1]-a[1]||(/[a-z]/.test(b[0])&&/[A-Z]/.test(b[0]))-(/[a-z]/.test(a[0])&&/[A-Z]/.test(a[0])))[0][0];}
+ SEASONS.forEach(s=>s.players.forEach(p=>p.n=canon[p.n.toLowerCase()]));}
+
+/* Teams (franchises/orgs) and their rollable eras. Rebrands share one team entry.
+   OWL eras: 2018–2020 and 2021–2023. OWCS: one era covering 2024–2025.
+   An era's pool is everyone who played for the team in those years, at their best season. */
+const ORG_OF={VEG:'PAR',SI:'PHI',NRG:'SFS'};
+SEASONS.forEach(s=>s.org=ORG_OF[s.ab]||s.ab);
+const eraKey=s=>s.lg==='OWCS'?'OWCS':(s.yr<=2020?'A':'B');
+const ERAS=[];
+const ORGS=[...new Set(SEASONS.map(s=>s.org))].map(org=>{
+  const ss=SEASONS.filter(s=>s.org===org).sort((a,b)=>a.yr-b.yr);
+  const eras=[...new Set(ss.map(eraKey))].map(key=>{
+    const sids=ss.filter(s=>eraKey(s)===key).map(s=>s.id), yrs=sids.map(id=>SEASONS[id].yr);
+    const best={},yrsOf={};
+    sids.forEach(id=>SEASONS[id].players.forEach(p=>{const k=p.n.toLowerCase()+'|'+p.ro;
+      (yrsOf[k]=yrsOf[k]||[]).push(SEASONS[id].yr);
+      if(!best[k]||p.ra>best[k].ra)best[k]={...p,sid:id};}));
+    for(const k in best)best[k].yrs=yrsOf[k];
+    const span=yrs[0]===yrs.at(-1)?String(yrs[0]):`${yrs[0]}–${String(yrs.at(-1)).slice(2)}`;
+    const e={id:ERAS.length,org,key,lg:SEASONS[sids[0]].lg,sids,span,
+      team:[...new Set(sids.map(id=>SEASONS[id].team))].join(' / '),ab:SEASONS[sids.at(-1)].ab,
+      players:Object.values(best).sort((a,b)=>'TDS'.indexOf(a.ro)-'TDS'.indexOf(b.ro)||a.n.localeCompare(b.n,undefined,{sensitivity:'base'}))};
+    ERAS.push(e);return e;
+  });
+  return {org,eras,name:[...new Set(ss.map(s=>s.team))].join(' / ')};
+});
+const ORG_BY={};ORGS.forEach(o=>ORG_BY[o.org]=o);
+
+/* Lineup slots. Sub-roles come from hero time that season (Stats Lab) or Liquipedia signature heroes.
+   Damage: H hitscan, F flex DPS, HF either. Support: M main, F flex, MF either. Tank: M main / O off (label only).
+   A player who fits both slots of a role goes into the harder-to-fill one first (Hitscan, Main Support). */
+const BACKLINE=[
+  {ro:'D',sub:'H',label:'Hitscan',code:'HS'},
+  {ro:'D',sub:'F',label:'Flex DPS',code:'FD'},
+  {ro:'S',sub:'M',label:'Main Support',code:'MS'},
+  {ro:'S',sub:'F',label:'Flex Support',code:'FS'}];
+const FORMATS={
+  '5v5':[{ro:'T',sub:null,label:'Tank',code:'TK'},...BACKLINE],
+  '6v6':[{ro:'T',sub:'M',label:'Main Tank',code:'MT'},{ro:'T',sub:'O',label:'Off-Tank',code:'OT'},...BACKLINE]};
+let FMT=(()=>{try{return JSON.parse(localStorage.getItem('40-0/format'))==='6v6'?'6v6':'5v5';}catch(e){return '5v5';}})();
+let SLOTS=FORMATS[FMT], N=SLOTS.length, SLOT_ROLES=SLOTS.map(s=>s.ro);
+const NUMWORD={5:'five',6:'six'};
+const ROLE_NAME={T:'Tank',D:'Damage',S:'Support'};
+const SUB_NAME={D:{H:'Hitscan',F:'Flex DPS',HF:'Hitscan / Flex'},S:{M:'Main Support',F:'Flex Support',MF:'Main / Flex Support'},T:{M:'Main tank',O:'Off-tank',MO:'Main / Off-tank'}};
+const subName=p=>(SUB_NAME[p.ro]||{})[p.sub]||ROLE_NAME[p.ro];
+const fitsSlot=(p,i)=>p.ro===SLOTS[i].ro&&(!SLOTS[i].sub||(p.sub||'HFMO').includes(SLOTS[i].sub));
+const ICON={
+  T:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l8 3v6c0 5.2-3.4 9.3-8 11-4.6-1.7-8-5.8-8-11V5z"/></svg>',
+  D:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M12 1.5v6M12 16.5v6M1.5 12h6M16.5 12h6"/></svg>',
+  S:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9.5 3h5v6.5H21v5h-6.5V21h-5v-6.5H3v-5h6.5z"/></svg>'
+};
+
+/* ================= RNG ================= */
+function hashStr(s){let h=1779033703^s.length;for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),3432918353);h=h<<13|h>>>19;}
+  h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return (h^=h>>>16)>>>0;}
+function rng32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function shuffle(arr,r){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+/* ================= SIM ================= */
+const FILL=80;
+function strength(s,six){
+  const by=ro=>s.players.filter(p=>p.ro===ro).map(p=>p.ra).sort((a,b)=>b-a);
+  const t=by('T'),d=by('D'),su=by('S');
+  const v=[t[0]??FILL,d[0]??FILL,d[1]??FILL,su[0]??FILL,su[1]??FILL];
+  if(six)v.push(t[1]??FILL);   // 6v6 teams field a second tank
+  return v.reduce((a,b)=>a+b,0)/v.length;
+}
+// Opponents are pulled slightly toward the league middle: a hand-picked five of stars should be able to run the table.
+const SHRINK={'5v5':0.92,'6v6':0.95};
+for(const [f,six] of [['5v5',false],['6v6',true]]){
+  const raw=SEASONS.map(s=>strength(s,six)).sort((a,b)=>a-b),MED=raw[raw.length>>1];
+  SEASONS.forEach(s=>s['str'+f]=MED+(strength(s,six)-MED)*SHRINK[f]);}
+const applyFormatStrength=()=>SEASONS.forEach(s=>s.str=s['str'+FMT]);
+applyFormatStrength();
+const logistic=x=>1/(1+Math.exp(-x));
+// One regular season = 28 matches, the length of the 2019 OWL season (the first with all 20 teams).
+const GAMES=28, PLAYOFF_WINS=17;
+const label=s=>`${s.yr} ${s.team}`;
+const short=s=>`${s.ab} ’${String(s.yr).slice(2)}`;
+
+function teamRating(lineup){
+  const n=lineup.length,avg=lineup.reduce((a,p)=>a+p.ra,0)/n;
+  let chem=0;
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){
+    const a=lineup[i],b=lineup[j];
+    if(a.sid===b.sid||(a.eid!=null&&a.eid===b.eid))chem+=0.6; else if(SEASONS[a.sid].org===SEASONS[b.sid].org)chem+=0.25;
+  }
+  chem=Math.min(chem,2.5);
+  return {avg,chem,R:avg+chem};
+}
+
+function simulate(lineup){
+  const {avg,chem,R}=teamRating(lineup);
+  const key=lineup.map(p=>p.sid+':'+p.n).join('|');
+  const rnd=rng32(hashStr(key));
+  const opps=shuffle(SEASONS,rnd).slice(0,GAMES);
+  const games=opps.map(s=>({s,p:logistic((R-s.str)/1.3)}));
+  const exp=games.reduce((a,g)=>a+g.p,0);
+  const losses=Math.floor(GAMES-exp+1e-9), wins=GAMES-losses;
+  const order=games.map((g,i)=>i).sort((a,b)=>games[a].p-games[b].p);
+  const lossSet=new Set(order.slice(0,losses));
+  games.forEach((g,i)=>g.w=!lossSet.has(i));
+  // playoffs
+  let playoffs=null, champion=false;
+  if(wins>=PLAYOFF_WINS){
+    const ranked=SEASONS.slice().sort((a,b)=>b.str-a.str);
+    const pickFrom=(lo,hi,used)=>{const pool=ranked.slice(lo,hi).filter(s=>!used.has(s.id));return pool[Math.floor(rnd()*pool.length)];};
+    const used=new Set();
+    const rounds=[['Quarterfinal',6,14,3],['Semifinal',2,6,3],['Grand Final',0,2,4]];
+    playoffs=[];champion=true;
+    for(const [name,lo,hi,need] of rounds){
+      const opp=pickFrom(lo,hi,used);used.add(opp.id);
+      const mp=logistic((R-opp.str)/2.2);let a=0,b=0;
+      while(a<need&&b<need){if(rnd()<mp)a++;else b++;}
+      playoffs.push({name,opp,a,b,won:a>b});
+      if(b>a){champion=false;break;}
+    }
+  }
+  return {avg,chem,R,games,wins,losses,playoffs,champion};
+}
+
+function bestFromPicks(picks){
+  const pools=picks.map(p=>p.eid!=null?ERAS[p.eid].players.map(x=>({...x,eid:p.eid})):SEASONS[p.sid].players.map(x=>({...x,sid:p.sid})));
+  let best=null,bestSum=-1;
+  const perm=(arr,k=0)=>{
+    if(k===arr.length){
+      let sum=0;const lu=[];
+      for(let i=0;i<N;i++){
+        const c=pools[arr[i]].filter(p=>fitsSlot(p,i)&&!lu.some(q=>q.n.toLowerCase()===p.n.toLowerCase())).sort((a,b)=>b.ra-a.ra)[0];
+        if(!c)return; sum+=c.ra; lu.push(c);
+      }
+      const tr=teamRating(lu).R;
+      if(tr>bestSum){bestSum=tr;best=lu;}
+      return;
+    }
+    for(let i=k;i<arr.length;i++){[arr[k],arr[i]]=[arr[i],arr[k]];perm(arr,k+1);[arr[k],arr[i]]=[arr[i],arr[k]];}
+  };
+  perm([...Array(N).keys()]);
+  return best;
+}
+
+function verdict(w){
+  if(w===GAMES)return 'Perfect season';
+  if(w>=25)return 'Juggernaut';
+  if(w>=21)return 'Title contender';
+  if(w>=PLAYOFF_WINS)return 'Playoff team';
+  if(w>=10)return 'Play-in hopeful';
+  if(w>=1)return 'Rebuild year';
+  return 'Shanghai ’18 tribute act';
+}
+
+/* ================= STATE ================= */
+const pad=n=>String(n).padStart(2,'0');
+const now=new Date();
+const TODAY=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+const DAILY_NO=Math.floor((Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())-Date.UTC(2026,10,17))/864e5)+1;
+const store={get(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
+
+let S;
+function newGame(mode){
+  const seed=mode==='daily'?hashStr('40-0/'+TODAY+(FMT==='6v6'?'/6v6':'')):(Math.random()*2**32)>>>0;
+  S={mode,rng:rng32(seed),usedE:new Set(),org:null,slots:Array(N).fill(null),current:null,
+     rerollTeam:1,rerollEra:1,phase:'intro',result:null,spinTimer:null,copied:false};
+  if(mode==='daily'){
+    const saved=store.get(saveKey());
+    if(saved&&saved.length===N){
+      S.slots=saved.map(([sid,n,eid])=>{const s=SEASONS[sid];const p=s&&s.players.find(x=>x.n===n);return p?{...p,sid,eid}:null;});
+      if(S.slots.every(Boolean)){S.result=simulate(S.slots);S.replay=true;}
+      else S.slots=Array(N).fill(null);
+    }
+  }
+}
+const saveKey=()=>'40-0/v10/daily/'+FMT+'/'+TODAY;
+let showRatings=!!store.get('40-0/showRatings');
+
+const openSlotFor=pl=>S.slots.findIndex((p,i)=>!p&&fitsSlot(pl,i));
+const openSlot=openSlotFor;
+const picks=()=>S.slots.filter(Boolean).length;
+const taken=n=>S.slots.some(p=>p&&p.n.toLowerCase()===n.toLowerCase());
+const canTake=p=>openSlotFor(p)!==-1&&!taken(p.n);
+const fits=e=>e.players.some(canTake);
+
+// Roll a team (every franchise/org equally likely), then one of its eras.
+// Eras already shown this draft, or with nobody who fits an open slot, are skipped.
+function rollEra(){
+  for(let tries=0;tries<600;tries++){
+    const o=ORGS[Math.floor(S.rng()*ORGS.length)];
+    const es=o.eras.filter(e=>!S.usedE.has(e.id));
+    if(!es.length)continue;
+    const e=es[Math.floor(S.rng()*es.length)];
+    if(!fits(e)){S.usedE.add(e.id);continue;}
+    return {o,e};
+  }
+  const e=ERAS.find(x=>!S.usedE.has(x.id)&&fits(x))||ERAS.find(fits);
+  return {o:ORG_BY[e.org],e};
+}
+
+// Other eras of the current team that are still available (for the era reroll).
+const altEras=()=>S.org&&S.current?S.org.eras.filter(x=>x.id!==S.current.id&&!S.usedE.has(x.id)&&fits(x)):[];
+
+// keepTeam: reroll the era only, staying on the current team.
+function deal(keepTeam){
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let o,e;
+  if(keepTeam){const alts=altEras();if(!alts.length)return;o=S.org;e=alts[Math.floor(S.rng()*alts.length)];}
+  else ({o,e}=rollEra());
+  S.usedE.add(e.id);
+  clearInterval(S.spinTimer);
+  if(reduce){S.org=o;S.current=e;S.phase='pick';render();return;}
+  const randOrg=()=>ORGS[Math.floor(Math.random()*ORGS.length)];
+  if(!keepTeam){S.phase='spinTeam';S.org=randOrg();S.current=S.org.eras.at(-1);}
+  else S.phase='spinEra';
+  render();
+  const n=o.eras.length, teamTicks=keepTeam?0:11, eraTicks=n>1?6+n*2:0;
+  let t=0;
+  S.spinTimer=setInterval(()=>{
+    t++;
+    if(t<teamTicks){S.org=randOrg();S.current=S.org.eras.at(-1);renderStage();return;}
+    if(t>=teamTicks+eraTicks){clearInterval(S.spinTimer);S.org=o;S.current=e;S.phase='pick';render();return;}
+    S.org=o;S.phase='spinEra';S.current=o.eras[(t-teamTicks)%n];renderStage();
+  },65);
+}
+
+function pick(idx){
+  const e=S.current,p=e.players[idx];if(!p||!canTake(p))return;const i=openSlotFor(p);
+  S.slots[i]={...p,eid:e.id};
+  if(picks()===N){
+    S.result=simulate(S.slots);S.phase='result';
+    if(S.mode==='daily')store.set(saveKey(),S.slots.map(x=>[x.sid,x.n,x.eid]));
+    render();
+  } else deal(false);
+}
+
+/* ================= RENDER ================= */
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const reveal=()=>showRatings||S.phase==='result';
+const yy=y=>'’'+String(y).slice(2);
+const yrsText=ys=>{const u=[...new Set(ys)].sort();return u.length===1?yy(u[0]):u.length===u.at(-1)-u[0]+1?`${yy(u[0])}–${String(u.at(-1)).slice(2)}`:u.map(yy).join(', ');};
+
+const inkFor=hex=>{const h=String(hex).replace('#','');if(h.length<6)return '#ffffff';
+  const L=[0,2,4].map(i=>parseInt(h.substr(i,2),16)/255).map(c=>c<=.03928?c/12.92:((c+.055)/1.055)**2.4);
+  return .2126*L[0]+.7152*L[1]+.0722*L[2]>.36?'#0b1424':'#ffffff';};
+
+const logo=(ab,cls)=>`<img class="${cls}" src="logos/${ab}.png" alt="" onerror="this.remove()">`;
+
+function renderLineup(){
+  const el=document.getElementById('lineup');
+  const filled=picks(), done=S.phase==='result';
+  const tr=filled===N?teamRating(S.slots):null;
+  const avg=filled?S.slots.filter(Boolean).reduce((a,p)=>a+p.ra,0)/filled:0;
+  const mvp=done?S.slots.reduce((m,p,i)=>p&&(m<0||p.ra>S.slots[m].ra)?i:m,-1):-1;
+  let html=`<div class="bar-head"><h2 class="bar-title">Your ${NUMWORD[N]}</h2>
+    <span class="bar-meta">${S.mode==='daily'?`Daily #${DAILY_NO}`:'Free play'} · ${FMT}</span>
+    <span class="bar-rating">Team rating <b>${filled&&reveal()?(tr?tr.R:avg).toFixed(1):'??'}</b>${tr&&tr.chem&&reveal()?`<small>incl. +${tr.chem.toFixed(1)} chemistry</small>`:''}</span></div>
+    <div class="plates" style="--n:${N}">`;
+  S.slots.forEach((p,i)=>{
+    const ro=SLOTS[i].ro;
+    if(!p){html+=`<div class="plate sk empty"><span class="badge r-${ro}">${ICON[ro]}</span><span class="pl-slot">${SLOTS[i].label}</span><span class="pl-name">Open</span></div>`;return;}
+    const s=SEASONS[p.sid];
+    html+=`<div class="plate sk filled pop${i===mvp?' mvp':''}"><span class="badge r-${ro}">${ICON[ro]}</span>
+      <span class="pl-slot">${SLOTS[i].label}${i===mvp?' <em title="Highest-rated player in your lineup">★ MVP</em>':''}</span>
+      <span class="pl-name">${esc(p.n)}</span><span class="pl-from">${logo(s.ab,'mini')}${esc(label(s))}</span>
+      <span class="pl-ovr ${reveal()?'':'hid'}">${reveal()?p.ra:'??'}</span></div>`;
+  });
+  html+=`</div>`;
+  el.innerHTML=html;
+}
+
+function cardHTML(e,o,phase){
+  const settled=phase==='pick', team=COLORS[e.ab]||'#f99e1a';
+  const chips=o.eras.map(x=>{
+    const cls=x.id===e.id&&phase!=='spinTeam'?'on':(S.usedE.has(x.id)&&x.id!==e.id&&settled?'used':'');
+    return `<span class="era sk ${cls}" title="${esc(x.team)}">${x.lg==='OWCS'?'OWCS ':''}${x.span}</span>`;}).join('');
+  const seasons=e.sids.map(id=>SEASONS[id]);
+  const recs=seasons.map(s=>`<span>${s.yr}${s.rec&&s.rec!=='—'?` <b>${s.rec}</b>`:''}${s.champ?' <span class="champ">★</span>':''}</span>`).join('');
+  const notes=seasons.filter(s=>s.note).map(s=>`<li><b>${s.yr}</b>${esc(s.note)}</li>`).join('');
+  const chip=phase==='spinTeam'?'Rolling team…':phase==='spinEra'?'Rolling era…':(e.lg==='OWCS'?'OWCS':'Overwatch League');
+  return `<div class="banner${settled?'':' rolling'}" style="--team:${team};--team-ink:${inkFor(team)}">
+      <div class="banner-logo sk">${logo(e.ab,'')}</div>
+      <div class="banner-top"><span class="tagchip sk">${chip}</span>${settled&&seasons.some(s=>s.champ)?'<span class="tagchip sk gold">★ Champion era</span>':''}</div>
+      <h3 class="banner-title">${phase==='spinTeam'?esc(o.name):`<span class="yr">${e.span}</span>${esc(e.team)}`}</h3>
+      <div class="eras" aria-label="Eras for this team">${phase==='spinTeam'?'':chips}</div>
+    </div>
+    `;
+}
+
+function progressHTML(){
+  const n=picks();
+  return `<div class="progress"><span class="step">Pick <b>${Math.min(n+1,N)}</b> of ${N}</span><div class="pips">${[...Array(N).keys()].map(i=>`<span class="pip ${i<n?'on':''}"></span>`).join('')}</div></div>`;
+}
+
+function renderStage(){
+  const el=document.getElementById('stage');
+  if(S.phase==='intro'){
+    const opt=(id,txt,on)=>`<button class="mopt sk${on?' on':''}" id="${id}" type="button" aria-pressed="${on}">${txt}</button>`;
+    el.innerHTML=`<div class="menu">
+      <button class="play sk" id="go" type="button"><span>${S.replay?'Your result':'Play'}</span><small>${S.mode==='daily'?`Daily #${DAILY_NO}`:'Free play'} · ${FMT}${S.replay?' · already played today':''}</small></button>
+      <div class="mrow"><span class="mlabel">Mode</span>${opt('mode-daily','Daily',S.mode==='daily')}${opt('mode-free','Free play',S.mode==='free')}</div>
+      <div class="mrow"><span class="mlabel">Format</span>${opt('fmt-5','5v5',FMT==='5v5')}${opt('fmt-6','6v6',FMT==='6v6')}</div>
+      <div class="mrow"><span class="mlabel">Ratings</span>${opt('rt-off','Hidden',!showRatings)}${opt('rt-on','Shown',showRatings)}</div>
+    </div>`;
+    document.getElementById('go').onclick=()=>{if(S.replay){S.phase='result';render();}else deal(false);};
+    document.getElementById('mode-daily').onclick=()=>setMode('daily',true);
+    document.getElementById('mode-free').onclick=()=>setMode('free',true);
+            const setR=v=>{showRatings=v;store.set('40-0/showRatings',v);render();};
+    document.getElementById('rt-off').onclick=()=>setR(false);
+    document.getElementById('rt-on').onclick=()=>setR(true);
+    return;
+  }
+  if(S.phase==='spinTeam'||S.phase==='spinEra'||S.phase==='pick'){
+    const e=S.current;
+    let html=progressHTML()+`<div class="${S.phase==='pick'?'pop':''}" style="display:grid;gap:12px">${cardHTML(e,S.org||ORG_BY[e.org],S.phase)}</div>`;
+    if(S.phase==='pick'){
+      const groups=['T','D','S'].map(ro=>({ro,ps:e.players.map((p,idx)=>({p,idx})).filter(x=>x.p.ro===ro)})).filter(g=>g.ps.length);
+      html+=`<div class="roster">`+groups.map(g=>`<section><h4 class="rhead r-${g.ro}">${ICON[g.ro]}<span>${ROLE_NAME[g.ro]}</span></h4><div class="tiles">`+
+        g.ps.map(({p,idx})=>{
+          const ok=canTake(p), why=taken(p.n)?'already drafted':'slot full';
+          return `<button class="tile sk" type="button" data-i="${idx}" ${ok?'':'disabled'} aria-label="Draft ${esc(p.n)}, ${subName(p)}${ok?'':` (${why})`}">
+            <span class="t-name">${esc(p.n)}</span><span class="t-sub">${ok?`${subName(p)} · ${yrsText(p.yrs)}`:why}</span>${showRatings?`<span class="t-ovr">${p.ra}</span>`:''}</button>`;
+        }).join('')+`</div></section>`).join('')+`</div>`;
+      const alts=altEras().length;
+      html+=`<div class="actions">
+        <button class="btn sk" id="reroll-team" type="button" ${S.rerollTeam?'':'disabled'}>Reroll team · ${S.rerollTeam}</button>
+        <button class="btn sk" id="reroll-era" type="button" ${S.rerollEra&&alts?'':'disabled'} title="${alts?'Keep this team, spin another era':'This team has no other era that fits your open slots'}">Reroll era · ${S.rerollEra}</button>
+      </div>`;
+    }
+    el.innerHTML=html;
+    el.querySelectorAll('.tile').forEach(b=>b.onclick=()=>pick(+b.dataset.i));
+    const rt=document.getElementById('reroll-team');if(rt)rt.onclick=()=>{if(S.rerollTeam){S.rerollTeam--;deal(false);}};
+    const re=document.getElementById('reroll-era');if(re)re.onclick=()=>{if(S.rerollEra&&altEras().length){S.rerollEra--;deal(true);}};
+    return;
+  }
+  if(S.phase==='result')renderResult(el);
+}
+
+function renderResult(el){
+  const r=S.result;
+  const best=bestFromPicks(S.slots);
+  const bestRes=best?simulate(best):null;
+  const lossesList=r.games.filter(g=>!g.w).sort((a,b)=>b.s.str-a.s.str);
+  const bestWins=r.games.filter(g=>g.w).sort((a,b)=>b.s.str-a.s.str).slice(0,3);
+  let po='';
+  if(r.playoffs){
+    po=r.playoffs.map(p=>`<li><span class="k">${p.name} <small>vs</small> ${logo(p.opp.ab,'mini')}${esc(label(p.opp))}</span><span class="v ${p.won?'won':'lost'}">${p.won?'W':'L'} ${p.a}–${p.b}</span></li>`).join('');
+    po+=`<li><span class="k"><b>${r.champion?'★ Champions':'Season over'}</b></span><span class="v ${r.champion?'gold-t':'lost'}">${r.champion?'Title':'Out'}</span></li>`;
+  } else po=`<li><span class="k">Missed the playoffs (${PLAYOFF_WINS} wins needed)</span><span class="v lost">Out</span></li>`;
+  const sameAsBest=best&&best.every((p,i)=>p.n===S.slots[i].n&&p.sid===S.slots[i].sid);
+  const tone=r.champion?'gold':r.wins>=PLAYOFF_WINS?'blue':'red';
+  el.innerHTML=`
+    <div class="post ${tone} pop">
+      <div><span class="tagchip sk">${S.replay?'Your saved result for today':`Regular season · ${GAMES} matches`} · ${FMT}</span></div>
+      <div class="post-verdict">${verdict(r.wins)}</div>
+      <div class="post-rec" aria-label="${r.wins} wins, ${r.losses} losses"><span>${r.wins}</span><span class="d">–</span><span>${r.losses}</span></div>
+      <p class="post-sub">Team rating ${r.R.toFixed(1)}: ${r.avg.toFixed(1)} average plus ${r.chem.toFixed(1)} chemistry.</p>
+    </div>
+    <div class="strip" role="img" aria-label="Match results, ${r.wins} wins and ${r.losses} losses">${r.games.map(g=>`<span class="g ${g.w?'W':'L'}" title="${g.w?'Win':'Loss'} vs ${esc(label(g.s))}"></span>`).join('')}</div>
+    <div class="cols">
+      <div class="box"><h4>Playoffs</h4><ul class="rows">${po}</ul></div>
+      <div class="box"><h4>Best draft from your spins${bestRes?` · ${bestRes.wins}–${bestRes.losses}`:''}</h4>${
+        sameAsBest?`<p style="margin:0">You found the best possible ${NUMWORD[N]} from these spins.</p>`:
+        `<ul class="rows">${best.map((p,i)=>`<li><span class="k"><span class="r-${p.ro}">${SLOTS[i].label}</span> · ${logo(SEASONS[p.sid].ab,'mini')}${esc(p.n)} <small>${esc(short(SEASONS[p.sid]))}</small></span><span class="v">${p.ra}</span></li>`).join('')}</ul>`
+      }</div>
+    </div>
+    <div class="actions">
+      <button class="btn sk primary" id="share" type="button">Copy result</button>
+      <button class="btn sk" id="again" type="button">${S.mode==='daily'?'Play free mode':'Draft again'}</button>
+      <span id="copymsg" class="copied" hidden>Copied</span>
+    </div>
+    <textarea id="sharebox" class="share-fallback" hidden readonly aria-label="Result text to copy"></textarea>`;
+  document.getElementById('again').onclick=()=>{setMode('free',true);deal(false);};
+  document.getElementById('share').onclick=()=>{
+    const txt=shareText();
+    const ok=()=>{const m=document.getElementById('copymsg');m.hidden=false;};
+    const fail=()=>{const b=document.getElementById('sharebox');b.hidden=false;b.value=txt;b.focus();b.select();};
+    try{navigator.clipboard.writeText(txt).then(ok,fail);}catch(e){fail();}
+  };
+}
+
+function shareText(){
+  const r=S.result;
+  const head=`28–0 · ${FMT} · ${S.mode==='daily'?`Daily #${DAILY_NO}`:'Free play'}`;
+  const line=`${r.wins}–${r.losses}${r.champion?' · 🏆 Champions':r.playoffs?' · Playoffs':''}`;
+  const grid=[0,1,2,3].map(k=>r.games.slice(k*7,k*7+7).map(g=>g.w?'🟩':'🟥').join('')).join('\n');
+  const lu=S.slots.map((p,i)=>`${SLOTS[i].code} ${p.n} (${short(SEASONS[p.sid])})`).join('\n');
+  return `${head}\n${line}\n${grid}\n${lu}`;
+}
+
+function render(){
+  const inMenu=S.phase==='intro';
+  document.getElementById('lineup').hidden=inMenu;
+  document.getElementById('menu-btn').hidden=inMenu;
+  renderLineup();renderStage();
+}
+
+function setMode(m,force){if(S&&S.mode===m&&!force)return;if(S)clearInterval(S.spinTimer);newGame(m);render();}
+
+function setFormat(f){
+  if(f===FMT)return;
+  FMT=f;store.set('40-0/format',f);
+  SLOTS=FORMATS[FMT];N=SLOTS.length;SLOT_ROLES=SLOTS.map(s=>s.ro);applyFormatStrength();
+  setMode(S.mode,true);
+}
+document.getElementById('menu-btn').onclick=()=>{clearInterval(S.spinTimer);newGame(S.mode);render();};
+newGame('daily');render();
+</script>
+</body>
+</html>
